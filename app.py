@@ -8,6 +8,8 @@ import os
 import atexit
 import logging
 import json
+import pyotp
+from SmartApi import SmartConnect  # Make sure this is installed: pip install angel-one-smartapi
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -16,17 +18,39 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)
 
-# Rate limit: 10 requests per minute per IP
 limiter = Limiter(get_remote_address, app=app, default_limits=["10 per minute"])
 
-# Cache to store responses
 cached_data = {
     "gainers_losers": [],
     "pcr": [],
     "oi_buildup": []
 }
 
-# Angel One API headers
+# 🔐 Angel One login with TOTP
+def login_and_set_token():
+    api_key = os.getenv("ANGEL_API_KEY")
+    client_id = os.getenv("ANGEL_CLIENT_ID")
+    password = os.getenv("ANGEL_PASSWORD")
+    totp_secret = os.getenv("ANGEL_TOTP_SECRET")
+
+    logger.info("🔐 Logging in to Angel One...")
+
+    try:
+        obj = SmartConnect(api_key=api_key)
+        totp = pyotp.TOTP(totp_secret).now()
+        data = obj.generateSession(client_id, password, totp)
+
+        access_token = data["data"]["access_token"]
+        os.environ["ANGEL_ACCESS_TOKEN"] = access_token  # Set for reuse
+
+        logger.info("✅ Angel One login successful.")
+        return access_token
+
+    except Exception as e:
+        logger.error(f"❌ Angel One login failed: {e}")
+        return None
+
+# 🧾 API headers
 def get_headers():
     access_token = os.getenv("ANGEL_ACCESS_TOKEN", "").strip()
     client_id = os.getenv("ANGEL_CLIENT_ID", "").strip()
@@ -46,9 +70,12 @@ def get_headers():
         "X-PrivateKey": client_id
     }
 
-# Fetch data every 5 minutes
+# 🔄 Fetch data every 5 minutes
 def fetch_data():
     logger.info("🔄 Fetching Angel One data...")
+
+    # Ensure fresh login for new access token
+    login_and_set_token()
     headers = get_headers()
 
     # Gainers/Losers
@@ -66,7 +93,7 @@ def fetch_data():
     except Exception as e:
         logger.error("❌ Gainers/Losers error: %s", str(e))
 
-    # Put Call Ratio (PCR)
+    # PCR
     try:
         r = requests.get("https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/putCallRatio",
                          headers=headers)
@@ -121,7 +148,7 @@ def pcr():
 def oi_buildup():
     return jsonify(cached_data["oi_buildup"])
 
-# Initial data fetch
+# First-time login + data fetch
 fetch_data()
 
 # Run Flask app
