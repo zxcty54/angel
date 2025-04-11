@@ -10,20 +10,20 @@ import atexit
 app = Flask(__name__)
 CORS(app)
 
-# Limit: 10 requests per minute per IP
+# Limit requests per IP
 limiter = Limiter(get_remote_address, app=app, default_limits=["10 per minute"])
 
-# Store latest Angel One API data
+# Cache to store Angel One API responses
 cached_data = {
     "gainers_losers": [],
     "pcr": [],
     "oi_buildup": []
 }
 
-# API HEADERS using environment variables
+# Angel One API headers
 def get_headers():
     return {
-        "Authorization": f"Bearer {os.getenv('ANGEL_TOKEN')}",
+        "Authorization": f"Bearer {os.getenv('ANGEL_ACCESS_TOKEN')}",
         "Content-Type": "application/json",
         "Accept": "application/json",
         "X-UserType": "USER",
@@ -31,56 +31,55 @@ def get_headers():
         "X-ClientLocalIP": "127.0.0.1",
         "X-ClientPublicIP": "127.0.0.1",
         "X-MACAddress": "AA:BB:CC:DD:EE:FF",
-        "X-PrivateKey": os.getenv("CLIENT_CODE")
+        "X-PrivateKey": os.getenv("ANGEL_CLIENT_ID")
     }
 
-# ⏰ Scheduled fetch function (every 5 minutes)
+# Scheduled function to fetch data every 5 minutes
 def fetch_data():
-    print("⏳ Fetching fresh Angel One data...")
+    print("🔄 Fetching Angel One data...")
 
     headers = get_headers()
 
     # Gainers/Losers
     try:
-        body = { "datatype": "PercPriceGainers", "expirytype": "NEAR" }
-        r = requests.post("https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/gainersLosers", 
+        body = {"datatype": "PercPriceGainers", "expirytype": "NEAR"}
+        r = requests.post("https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/gainersLosers",
                           json=body, headers=headers)
         cached_data["gainers_losers"] = r.json().get("data", [])
-        print("✅ Gainers/Losers updated")
+        print("✅ Gainers/Losers updated.")
     except Exception as e:
-        print("❌ Error fetching gainers/losers:", e)
+        print("❌ Gainers/Losers error:", e)
 
-    # PCR (Put Call Ratio)
+    # Put Call Ratio (PCR)
     try:
-        r = requests.get("https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/putCallRatio", 
+        r = requests.get("https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/putCallRatio",
                          headers=headers)
         cached_data["pcr"] = r.json().get("data", [])
-        print("✅ PCR updated")
+        print("✅ PCR updated.")
     except Exception as e:
-        print("❌ Error fetching PCR:", e)
+        print("❌ PCR error:", e)
 
     # OI Buildup
     try:
-        body = { "expirytype": "NEAR", "datatype": "Long Built Up" }
-        r = requests.post("https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/OIBuildup", 
+        body = {"expirytype": "NEAR", "datatype": "Long Built Up"}
+        r = requests.post("https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/OIBuildup",
                           json=body, headers=headers)
         cached_data["oi_buildup"] = r.json().get("data", [])
-        print("✅ OI Buildup updated")
+        print("✅ OI Buildup updated.")
     except Exception as e:
-        print("❌ Error fetching OI Buildup:", e)
+        print("❌ OI Buildup error:", e)
 
-# 🔁 Scheduler setup
+# Background scheduler setup
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=fetch_data, trigger="interval", minutes=5)
 scheduler.start()
 
-# Ensure scheduler stops on app exit
 atexit.register(lambda: scheduler.shutdown())
 
-# 🔥 Routes
+# API Endpoints
 @app.route("/")
 def home():
-    return jsonify({"status": "running", "message": "Angel API server is live!"})
+    return jsonify({"status": "running", "message": "Angel One API server is live!"})
 
 @app.route("/gainers-losers")
 @limiter.limit("5 per minute")
@@ -97,9 +96,9 @@ def pcr():
 def oi_buildup():
     return jsonify(cached_data["oi_buildup"])
 
-# ✅ Run once at startup
+# Fetch data once at startup
 fetch_data()
 
-# 🧪 Start server
+# Run Flask app
 if __name__ == "__main__":
     app.run(debug=True)
