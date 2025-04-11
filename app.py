@@ -23,7 +23,7 @@ cached_data = {
 # Angel One API headers
 def get_headers():
     return {
-        "Authorization": f"Bearer {os.getenv('ANGEL_ACCESS_TOKEN')}",
+        "Authorization": f"Bearer {os.getenv('ANGEL_ACCESS_TOKEN', '').strip()}",
         "Content-Type": "application/json",
         "Accept": "application/json",
         "X-UserType": "USER",
@@ -31,7 +31,7 @@ def get_headers():
         "X-ClientLocalIP": "127.0.0.1",
         "X-ClientPublicIP": "127.0.0.1",
         "X-MACAddress": "AA:BB:CC:DD:EE:FF",
-        "X-PrivateKey": os.getenv("ANGEL_CLIENT_ID")
+        "X-PrivateKey": os.getenv("ANGEL_CLIENT_ID", "").strip()
     }
 
 # Scheduled function to fetch data every 5 minutes
