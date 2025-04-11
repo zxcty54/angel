@@ -97,11 +97,9 @@ def pcr():
 def oi_buildup():
     return jsonify(cached_data["oi_buildup"])
 
-# 🔁 Run one fetch at startup
-@app.before_first_request
-def initial_fetch():
-    fetch_data()
+# ✅ Run once at startup
+fetch_data()
 
-# 🧪 Entry point
+# 🧪 Start server
 if __name__ == "__main__":
     app.run(debug=True)
