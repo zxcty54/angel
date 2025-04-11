@@ -29,12 +29,12 @@ cached_data = {
 # Angel One API headers
 def get_headers():
     access_token = os.getenv("ANGEL_ACCESS_TOKEN", "").strip()
-    api_key = os.getenv("ANGEL_API_KEY", "").strip()  # ✅ Use actual API key here
+    client_id = os.getenv("ANGEL_CLIENT_ID", "").strip()
 
     logger.info(f"Using ANGEL_ACCESS_TOKEN: {'SET' if access_token else 'MISSING'}")
-    logger.info(f"Using ANGEL_API_KEY: {'SET' if api_key else 'MISSING'}")
+    logger.info(f"Using ANGEL_CLIENT_ID: {'SET' if client_id else 'MISSING'}")
 
-    headers = {
+    return {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
         "Accept": "application/json",
@@ -43,61 +43,55 @@ def get_headers():
         "X-ClientLocalIP": "127.0.0.1",
         "X-ClientPublicIP": "127.0.0.1",
         "X-MACAddress": "AA:BB:CC:DD:EE:FF",
-        "X-PrivateKey": api_key  # ✅ API key (not client ID)
+        "X-PrivateKey": client_id
     }
-
-    logger.debug("🔐 Request Headers: \n%s", json.dumps(headers, indent=2))
-    return headers
 
 # Fetch data every 5 minutes
 def fetch_data():
     logger.info("🔄 Fetching Angel One data...")
     headers = get_headers()
 
-    # 1. Gainers/Losers
+    # Gainers/Losers
     try:
         body = {"datatype": "PercPriceGainers", "expirytype": "NEAR"}
         r = requests.post("https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/gainersLosers",
                           json=body, headers=headers)
         logger.info("📈 Gainers/Losers Status: %s", r.status_code)
-        logger.debug("📈 Gainers/Losers Response: %s", r.text)
 
-        if r.ok:
-            cached_data["gainers_losers"] = r.json().get("data", [])
-            logger.info("✅ Gainers/Losers updated. Count: %d", len(cached_data["gainers_losers"]))
-        else:
-            logger.warning("⚠️ Gainers/Losers response error: %s", r.json().get("message", r.text))
+        data = r.json()
+        cached_data["gainers_losers"] = data.get("data", [])
+        logger.info("✅ Gainers/Losers updated. Count: %d", len(cached_data["gainers_losers"]))
+        if not cached_data["gainers_losers"]:
+            logger.warning("⚠️ Gainers/Losers returned empty data. Response:\n%s", json.dumps(data, indent=2))
     except Exception as e:
         logger.error("❌ Gainers/Losers error: %s", str(e))
 
-    # 2. PCR
+    # Put Call Ratio (PCR)
     try:
         r = requests.get("https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/putCallRatio",
                          headers=headers)
         logger.info("📊 PCR Status: %s", r.status_code)
-        logger.debug("📊 PCR Response: %s", r.text)
 
-        if r.ok:
-            cached_data["pcr"] = r.json().get("data", [])
-            logger.info("✅ PCR updated. Count: %d", len(cached_data["pcr"]))
-        else:
-            logger.warning("⚠️ PCR response error: %s", r.json().get("message", r.text))
+        data = r.json()
+        cached_data["pcr"] = data.get("data", [])
+        logger.info("✅ PCR updated. Count: %d", len(cached_data["pcr"]))
+        if not cached_data["pcr"]:
+            logger.warning("⚠️ PCR returned empty data. Response:\n%s", json.dumps(data, indent=2))
     except Exception as e:
         logger.error("❌ PCR error: %s", str(e))
 
-    # 3. OI Buildup
+    # OI Buildup
     try:
         body = {"expirytype": "NEAR", "datatype": "Long Built Up"}
         r = requests.post("https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/OIBuildup",
                           json=body, headers=headers)
         logger.info("📊 OI Buildup Status: %s", r.status_code)
-        logger.debug("📊 OI Buildup Response: %s", r.text)
 
-        if r.ok:
-            cached_data["oi_buildup"] = r.json().get("data", [])
-            logger.info("✅ OI Buildup updated. Count: %d", len(cached_data["oi_buildup"]))
-        else:
-            logger.warning("⚠️ OI Buildup response error: %s", r.json().get("message", r.text))
+        data = r.json()
+        cached_data["oi_buildup"] = data.get("data", [])
+        logger.info("✅ OI Buildup updated. Count: %d", len(cached_data["oi_buildup"]))
+        if not cached_data["oi_buildup"]:
+            logger.warning("⚠️ OI Buildup returned empty data. Response:\n%s", json.dumps(data, indent=2))
     except Exception as e:
         logger.error("❌ OI Buildup error: %s", str(e))
 
@@ -127,7 +121,7 @@ def pcr():
 def oi_buildup():
     return jsonify(cached_data["oi_buildup"])
 
-# Initial fetch on app start
+# Initial data fetch
 fetch_data()
 
 # Run Flask app
