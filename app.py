@@ -12,7 +12,7 @@ import pyotp
 from dotenv import load_dotenv
 from SmartApi.smartConnect import SmartConnect
   # pip install angel-one-smartapi
-from Crypto.PublicKey import RSA  ✅
+from Crypto.PublicKey import RSA
 from time import sleep
 
 # Load environment variables
