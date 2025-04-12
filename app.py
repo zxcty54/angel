@@ -12,6 +12,7 @@ import pyotp
 from dotenv import load_dotenv
 from smartapi.smartConnect import SmartConnect  # pip install angel-one-smartapi
 from Cryptodome.PublicKey import RSA
+from time import sleep
 
 # Load environment variables
 load_dotenv()
@@ -127,9 +128,11 @@ def fetch_data():
     except Exception as e:
         logger.error("❌ OI Buildup error: %s", str(e))
 
-# Background scheduler
+# Background scheduler with configurable interval
+scheduler_interval = int(os.getenv("SCHEDULER_INTERVAL_MINUTES", 5))  # Default to 5 minutes if not set
+
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=fetch_data, trigger="interval", minutes=5)
+scheduler.add_job(func=fetch_data, trigger="interval", minutes=scheduler_interval)
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 
@@ -141,19 +144,19 @@ def home():
 @app.route("/gainers-losers")
 @limiter.limit("5 per minute")
 def gainers_losers():
-    return jsonify(cached_data["gainers_losers"])
+    return jsonify({"data": cached_data["gainers_losers"], "status": "success"})
 
 @app.route("/pcr")
 @limiter.limit("5 per minute")
 def pcr():
-    return jsonify(cached_data["pcr"])
+    return jsonify({"data": cached_data["pcr"], "status": "success"})
 
 @app.route("/oi-buildup")
 @limiter.limit("5 per minute")
 def oi_buildup():
-    return jsonify(cached_data["oi_buildup"])
+    return jsonify({"data": cached_data["oi_buildup"], "status": "success"})
 
-# First-time login + data fetch
+# First-time login + data fetch on startup
 fetch_data()
 
 # Run Flask app
