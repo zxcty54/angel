@@ -10,7 +10,7 @@ import logging
 import json
 import pyotp
 from dotenv import load_dotenv
-from smartapi.smartConnect import SmartConnect
+from SmartApi.smartConnect import SmartConnect
   # pip install angel-one-smartapi
 from Cryptodome.PublicKey import RSA
 from time import sleep
