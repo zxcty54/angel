@@ -42,7 +42,7 @@ def login_and_set_token():
 
     try:
         obj = SmartConnect(api_key=api_key)
-        totp = pyotp.TOTP(totp_secret).now()
+        totp = pyotp.TOTP(totp_secret).now()  # TOTP generation
         data = obj.generateSession(client_id, password, totp)
 
         jwt_token = data["data"]["jwtToken"]
