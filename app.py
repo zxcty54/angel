@@ -1,156 +1,151 @@
-from flask import Flask, jsonify
-from flask_cors import CORS
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from apscheduler.schedulers.background import BackgroundScheduler
-import requests
 import os
-import atexit
-import logging
+import time
 import json
+import requests
 import pyotp
-from dotenv import load_dotenv
-from SmartApi.smartConnect import SmartConnect
+import dotenv
+from flask import Flask, jsonify
+from apscheduler.schedulers.background import BackgroundScheduler
+import logging
 
-# Load environment variables from .env
-load_dotenv()
+# Load environment variables
+dotenv.load_dotenv()
 
-# Setup logging
+# Logging setup
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("AngelOneAPI")
+logger = logging.getLogger(__name__)
 
-# Flask setup
+# Angel One credentials
+API_KEY = os.getenv("ANGEL_API_KEY")
+CLIENT_ID = os.getenv("ANGEL_CLIENT_ID")
+PASSWORD = os.getenv("ANGEL_PASSWORD")
+TOTP_SECRET = os.getenv("ANGEL_TOTP_SECRET")
+
+# Token file path
+TOKEN_FILE = "angel_jwt.token"
+
+# Global storage for fetched data
+latest_data = {}
+
 app = Flask(__name__)
-CORS(app)
-limiter = Limiter(get_remote_address, app=app, default_limits=["10 per minute"])
 
-# In-memory cache
-cached_data = {
-    "gainers_losers": [],
-    "pcr": [],
-    "oi_buildup": []
-}
 
-# Login function to get JWT token
-def login_and_set_token():
-    api_key = os.getenv("ANGEL_API_KEY")
-    client_id = os.getenv("ANGEL_CLIENT_ID")
-    password = os.getenv("ANGEL_PASSWORD")
-    totp_secret = os.getenv("ANGEL_TOTP_SECRET")
+def get_saved_token():
+    if os.path.exists(TOKEN_FILE):
+        with open(TOKEN_FILE, "r") as f:
+            return f.read().strip()
+    return None
 
-    if not all([api_key, client_id, password, totp_secret]):
-        logger.error("❌ Missing environment variables for Angel login.")
-        return None
 
+def save_token(jwt_token):
+    with open(TOKEN_FILE, "w") as f:
+        f.write(jwt_token)
+
+
+def generate_totp():
+    return pyotp.TOTP(TOTP_SECRET).now()
+
+
+def login_and_get_token():
     logger.info("🔐 Logging in to Angel One...")
-    try:
-        obj = SmartConnect(api_key=api_key)
-        totp = pyotp.TOTP(totp_secret).now()
-        data = obj.generateSession(client_id, password, totp)
+    url = "https://apiconnect.angelone.in/rest/auth/angelbroking/user/v1/loginByPassword"
 
-        jwt_token = data["data"]["jwtToken"]
-        feed_token = obj.getfeedToken()
+    payload = {
+        "clientcode": CLIENT_ID,
+        "password": PASSWORD,
+        "totp": generate_totp()
+    }
 
-        os.environ["ANGEL_JWT_TOKEN"] = jwt_token
-        os.environ["ANGEL_FEED_TOKEN"] = feed_token
-
-        logger.info("✅ Login successful.")
-        return jwt_token
-    except Exception as e:
-        logger.error(f"❌ Login failed: {e}")
-        return None
-
-# Build headers with correct API key
-def get_headers():
-    jwt_token = os.getenv("ANGEL_JWT_TOKEN")
-    api_key = os.getenv("ANGEL_API_KEY")  # Use API key here, not client ID
-
-    return {
-        "Authorization": f"Bearer {jwt_token}",
+    headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
         "X-UserType": "USER",
         "X-SourceID": "WEB",
         "X-ClientLocalIP": "127.0.0.1",
         "X-ClientPublicIP": "127.0.0.1",
-        "X-MACAddress": "AA:BB:CC:DD:EE:FF",
-        "X-PrivateKey": api_key
+        "X-MACAddress": "00:00:00:00:00:00",
+        "X-PrivateKey": API_KEY
     }
 
-# Main function to fetch data
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 200:
+            jwt_token = response.json().get("data", {}).get("jwtToken")
+            if jwt_token:
+                logger.info("✅ Login successful. JWT obtained.")
+                save_token(jwt_token)
+                return jwt_token
+            else:
+                logger.error("❌ JWT token missing in response.")
+        else:
+            logger.error(f"❌ Login failed: {response.status_code} - {response.text}")
+    except Exception as e:
+        logger.exception("❌ Exception during login:")
+    return None
+
+
+def get_valid_token():
+    jwt_token = get_saved_token()
+    if not jwt_token:
+        jwt_token = login_and_get_token()
+    return jwt_token
+
+
 def fetch_data():
-    logger.info("🔄 Fetching Angel One data...")
-    login_and_set_token()
-    headers = get_headers()
+    global latest_data
+    jwt_token = get_valid_token()
 
-    endpoints = {
-        "gainers_losers": {
-            "url": "https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/gainersLosers",
-            "body": {"datatype": "PercPriceGainers", "expirytype": "NEAR"},
-            "method": "POST"
-        },
-        "pcr": {
-            "url": "https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/putCallRatio",
-            "body": None,
-            "method": "GET"
-        },
-        "oi_buildup": {
-            "url": "https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/OIBuildup",
-            "body": {"expirytype": "NEAR", "datatype": "Long Built Up"},
-            "method": "POST"
-        }
+    if not jwt_token:
+        logger.error("❌ Cannot fetch data without a valid token.")
+        return
+
+    url = "https://apiconnect.angelone.in/rest/secure/angelbroking/order/v1/getLtpData"
+    payload = {
+        "exchange": "NSE",
+        "tradingsymbol": "RELIANCE-EQ",
+        "symboltoken": "2885"
     }
 
-    for key, config in endpoints.items():
-        try:
-            logger.info(f"📡 Fetching: {key.replace('_', ' ').title()}")
-            if config["method"] == "POST":
-                response = requests.post(config["url"], headers=headers, json=config["body"])
-            else:
-                response = requests.get(config["url"], headers=headers)
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "X-UserType": "USER",
+        "X-SourceID": "WEB",
+        "X-ClientLocalIP": "127.0.0.1",
+        "X-ClientPublicIP": "127.0.0.1",
+        "X-MACAddress": "00:00:00:00:00:00",
+        "X-PrivateKey": API_KEY,
+        "Authorization": f"Bearer {jwt_token}"
+    }
 
-            if response.status_code == 200:
-                data = response.json().get("data", [])
-                cached_data[key] = data
-                logger.info(f"✅ {key.replace('_', ' ').title()} updated. Count: {len(data)}")
-                if not data:
-                    logger.warning(f"⚠️ {key} is empty:\n{json.dumps(response.json(), indent=2)}")
-            else:
-                logger.error(f"❌ Failed to fetch {key}. Status: {response.status_code}")
-                logger.error(f"Response Body: {response.text}")
-        except Exception as e:
-            logger.error(f"❌ Exception during {key} fetch: {e}")
+    try:
+        response = requests.post(url, json=payload, headers=headers)
 
-# Scheduler to run fetch_data every few minutes
-interval = int(os.getenv("SCHEDULER_INTERVAL_MINUTES", 5))
-scheduler = BackgroundScheduler()
-scheduler.add_job(fetch_data, trigger="interval", minutes=interval)
-scheduler.start()
-atexit.register(lambda: scheduler.shutdown())
+        # Handle token expiry
+        if response.status_code == 401 or "Invalid Token" in response.text:
+            logger.warning("⚠️ Token expired. Re-logging in...")
+            jwt_token = login_and_get_token()
+            if jwt_token:
+                headers["Authorization"] = f"Bearer {jwt_token}"
+                response = requests.post(url, json=payload, headers=headers)
 
-# Routes
+        if response.status_code == 200:
+            latest_data = response.json()
+            logger.info(f"📈 Fetched data: {latest_data}")
+        else:
+            logger.error(f"❌ Failed to fetch data: {response.status_code} - {response.text}")
+    except Exception as e:
+        logger.exception("❌ Exception during data fetch:")
+
+
 @app.route("/")
-def index():
-    return jsonify({"status": "running", "message": "Angel One API server is live!"})
+def home():
+    return jsonify(latest_data or {"message": "No data available yet"})
 
-@app.route("/api/gainers-losers")
-@limiter.limit("5 per minute")
-def get_gainers_losers():
-    return jsonify({"status": "success", "data": cached_data["gainers_losers"]})
 
-@app.route("/api/pcr")
-@limiter.limit("5 per minute")
-def get_pcr():
-    return jsonify({"status": "success", "data": cached_data["pcr"]})
-
-@app.route("/api/oi-buildup")
-@limiter.limit("5 per minute")
-def get_oi_buildup():
-    return jsonify({"status": "success", "data": cached_data["oi_buildup"]})
-
-# Initial fetch on startup
-fetch_data()
-
-# Run the Flask app
 if __name__ == "__main__":
-    app.run(debug=True)
+    fetch_data()  # Initial fetch on app start
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(fetch_data, "interval", minutes=5)
+    scheduler.start()
+    app.run(debug=False, port=5000)
