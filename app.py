@@ -12,7 +12,7 @@ import pyotp
 from dotenv import load_dotenv
 from SmartApi.smartConnect import SmartConnect
 
-# Load environment variables
+# Load environment variables from .env
 load_dotenv()
 
 # Setup logging
@@ -31,7 +31,7 @@ cached_data = {
     "oi_buildup": []
 }
 
-# Login & get tokens
+# Login function to get JWT token
 def login_and_set_token():
     api_key = os.getenv("ANGEL_API_KEY")
     client_id = os.getenv("ANGEL_CLIENT_ID")
@@ -39,7 +39,7 @@ def login_and_set_token():
     totp_secret = os.getenv("ANGEL_TOTP_SECRET")
 
     if not all([api_key, client_id, password, totp_secret]):
-        logger.error("Missing environment variables for Angel login.")
+        logger.error("❌ Missing environment variables for Angel login.")
         return None
 
     logger.info("🔐 Logging in to Angel One...")
@@ -60,10 +60,10 @@ def login_and_set_token():
         logger.error(f"❌ Login failed: {e}")
         return None
 
-# Build headers
+# Build headers with correct API key
 def get_headers():
     jwt_token = os.getenv("ANGEL_JWT_TOKEN")
-    client_id = os.getenv("ANGEL_CLIENT_ID")
+    api_key = os.getenv("ANGEL_API_KEY")  # Use API key here, not client ID
 
     return {
         "Authorization": f"Bearer {jwt_token}",
@@ -74,10 +74,10 @@ def get_headers():
         "X-ClientLocalIP": "127.0.0.1",
         "X-ClientPublicIP": "127.0.0.1",
         "X-MACAddress": "AA:BB:CC:DD:EE:FF",
-        "X-PrivateKey": client_id
+        "X-PrivateKey": api_key
     }
 
-# Main fetch function
+# Main function to fetch data
 def fetch_data():
     logger.info("🔄 Fetching Angel One data...")
     login_and_set_token()
@@ -117,10 +117,11 @@ def fetch_data():
                     logger.warning(f"⚠️ {key} is empty:\n{json.dumps(response.json(), indent=2)}")
             else:
                 logger.error(f"❌ Failed to fetch {key}. Status: {response.status_code}")
+                logger.error(f"Response Body: {response.text}")
         except Exception as e:
             logger.error(f"❌ Exception during {key} fetch: {e}")
 
-# Scheduler setup
+# Scheduler to run fetch_data every few minutes
 interval = int(os.getenv("SCHEDULER_INTERVAL_MINUTES", 5))
 scheduler = BackgroundScheduler()
 scheduler.add_job(fetch_data, trigger="interval", minutes=interval)
@@ -147,9 +148,9 @@ def get_pcr():
 def get_oi_buildup():
     return jsonify({"status": "success", "data": cached_data["oi_buildup"]})
 
-# Initial fetch
+# Initial fetch on startup
 fetch_data()
 
-# Run the app
+# Run the Flask app
 if __name__ == "__main__":
     app.run(debug=True)
