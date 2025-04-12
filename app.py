@@ -11,41 +11,41 @@ import json
 import pyotp
 from dotenv import load_dotenv
 from SmartApi.smartConnect import SmartConnect
-  # pip install angel-one-smartapi
-from Crypto.PublicKey import RSA
-from time import sleep
 
 # Load environment variables
 load_dotenv()
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("AngelOneAPI")
 
-# Flask app setup
+# Flask setup
 app = Flask(__name__)
 CORS(app)
 limiter = Limiter(get_remote_address, app=app, default_limits=["10 per minute"])
 
-# Cache for storing API responses
+# In-memory cache
 cached_data = {
     "gainers_losers": [],
     "pcr": [],
     "oi_buildup": []
 }
 
-# 🔐 Angel One login with TOTP
+# Login & get tokens
 def login_and_set_token():
     api_key = os.getenv("ANGEL_API_KEY")
     client_id = os.getenv("ANGEL_CLIENT_ID")
     password = os.getenv("ANGEL_PASSWORD")
     totp_secret = os.getenv("ANGEL_TOTP_SECRET")
 
-    logger.info("🔐 Logging in to Angel One...")
+    if not all([api_key, client_id, password, totp_secret]):
+        logger.error("Missing environment variables for Angel login.")
+        return None
 
+    logger.info("🔐 Logging in to Angel One...")
     try:
         obj = SmartConnect(api_key=api_key)
-        totp = pyotp.TOTP(totp_secret).now()  # TOTP generation
+        totp = pyotp.TOTP(totp_secret).now()
         data = obj.generateSession(client_id, password, totp)
 
         jwt_token = data["data"]["jwtToken"]
@@ -54,20 +54,16 @@ def login_and_set_token():
         os.environ["ANGEL_JWT_TOKEN"] = jwt_token
         os.environ["ANGEL_FEED_TOKEN"] = feed_token
 
-        logger.info("✅ Angel One login successful.")
+        logger.info("✅ Login successful.")
         return jwt_token
-
     except Exception as e:
-        logger.error(f"❌ Angel One login failed: {e}")
+        logger.error(f"❌ Login failed: {e}")
         return None
 
-# 🧾 API headers
+# Build headers
 def get_headers():
-    jwt_token = os.getenv("ANGEL_JWT_TOKEN", "").strip()
-    client_id = os.getenv("ANGEL_CLIENT_ID", "").strip()
-
-    logger.info(f"Using ANGEL_JWT_TOKEN: {'SET' if jwt_token else 'MISSING'}")
-    logger.info(f"Using ANGEL_CLIENT_ID: {'SET' if client_id else 'MISSING'}")
+    jwt_token = os.getenv("ANGEL_JWT_TOKEN")
+    client_id = os.getenv("ANGEL_CLIENT_ID")
 
     return {
         "Authorization": f"Bearer {jwt_token}",
@@ -81,85 +77,79 @@ def get_headers():
         "X-PrivateKey": client_id
     }
 
-# 🔄 Fetch Angel One data
+# Main fetch function
 def fetch_data():
     logger.info("🔄 Fetching Angel One data...")
-
     login_and_set_token()
     headers = get_headers()
 
-    # Gainers/Losers
-    try:
-        body = {"datatype": "PercPriceGainers", "expirytype": "NEAR"}
-        r = requests.post("https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/gainersLosers",
-                          json=body, headers=headers)
-        logger.info("📈 Gainers/Losers Status: %s", r.status_code)
-        data = r.json()
-        cached_data["gainers_losers"] = data.get("data", [])
-        logger.info("✅ Gainers/Losers updated. Count: %d", len(cached_data["gainers_losers"]))
-        if not cached_data["gainers_losers"]:
-            logger.warning("⚠️ Gainers/Losers returned empty data:\n%s", json.dumps(data, indent=2))
-    except Exception as e:
-        logger.error("❌ Gainers/Losers error: %s", str(e))
+    endpoints = {
+        "gainers_losers": {
+            "url": "https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/gainersLosers",
+            "body": {"datatype": "PercPriceGainers", "expirytype": "NEAR"},
+            "method": "POST"
+        },
+        "pcr": {
+            "url": "https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/putCallRatio",
+            "body": None,
+            "method": "GET"
+        },
+        "oi_buildup": {
+            "url": "https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/OIBuildup",
+            "body": {"expirytype": "NEAR", "datatype": "Long Built Up"},
+            "method": "POST"
+        }
+    }
 
-    # PCR
-    try:
-        r = requests.get("https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/putCallRatio",
-                         headers=headers)
-        logger.info("📊 PCR Status: %s", r.status_code)
-        data = r.json()
-        cached_data["pcr"] = data.get("data", [])
-        logger.info("✅ PCR updated. Count: %d", len(cached_data["pcr"]))
-        if not cached_data["pcr"]:
-            logger.warning("⚠️ PCR returned empty data:\n%s", json.dumps(data, indent=2))
-    except Exception as e:
-        logger.error("❌ PCR error: %s", str(e))
+    for key, config in endpoints.items():
+        try:
+            logger.info(f"📡 Fetching: {key.replace('_', ' ').title()}")
+            if config["method"] == "POST":
+                response = requests.post(config["url"], headers=headers, json=config["body"])
+            else:
+                response = requests.get(config["url"], headers=headers)
 
-    # OI Buildup
-    try:
-        body = {"expirytype": "NEAR", "datatype": "Long Built Up"}
-        r = requests.post("https://apiconnect.angelone.in/rest/secure/angelbroking/marketData/v1/OIBuildup",
-                          json=body, headers=headers)
-        logger.info("📊 OI Buildup Status: %s", r.status_code)
-        data = r.json()
-        cached_data["oi_buildup"] = data.get("data", [])
-        logger.info("✅ OI Buildup updated. Count: %d", len(cached_data["oi_buildup"]))
-        if not cached_data["oi_buildup"]:
-            logger.warning("⚠️ OI Buildup returned empty data:\n%s", json.dumps(data, indent=2))
-    except Exception as e:
-        logger.error("❌ OI Buildup error: %s", str(e))
+            if response.status_code == 200:
+                data = response.json().get("data", [])
+                cached_data[key] = data
+                logger.info(f"✅ {key.replace('_', ' ').title()} updated. Count: {len(data)}")
+                if not data:
+                    logger.warning(f"⚠️ {key} is empty:\n{json.dumps(response.json(), indent=2)}")
+            else:
+                logger.error(f"❌ Failed to fetch {key}. Status: {response.status_code}")
+        except Exception as e:
+            logger.error(f"❌ Exception during {key} fetch: {e}")
 
-# Background scheduler with configurable interval
-scheduler_interval = int(os.getenv("SCHEDULER_INTERVAL_MINUTES", 5))  # Default to 5 minutes if not set
-
+# Scheduler setup
+interval = int(os.getenv("SCHEDULER_INTERVAL_MINUTES", 5))
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=fetch_data, trigger="interval", minutes=scheduler_interval)
+scheduler.add_job(fetch_data, trigger="interval", minutes=interval)
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 
-# Flask Routes
+# Routes
 @app.route("/")
-def home():
+def index():
     return jsonify({"status": "running", "message": "Angel One API server is live!"})
 
-@app.route("/gainers-losers")
+@app.route("/api/gainers-losers")
 @limiter.limit("5 per minute")
-def gainers_losers():
-    return jsonify({"data": cached_data["gainers_losers"], "status": "success"})
+def get_gainers_losers():
+    return jsonify({"status": "success", "data": cached_data["gainers_losers"]})
 
-@app.route("/pcr")
+@app.route("/api/pcr")
 @limiter.limit("5 per minute")
-def pcr():
-    return jsonify({"data": cached_data["pcr"], "status": "success"})
+def get_pcr():
+    return jsonify({"status": "success", "data": cached_data["pcr"]})
 
-@app.route("/oi-buildup")
+@app.route("/api/oi-buildup")
 @limiter.limit("5 per minute")
-def oi_buildup():
-    return jsonify({"data": cached_data["oi_buildup"], "status": "success"})
+def get_oi_buildup():
+    return jsonify({"status": "success", "data": cached_data["oi_buildup"]})
 
-# First-time login + data fetch on startup
+# Initial fetch
 fetch_data()
 
-# Run Flask app
+# Run the app
 if __name__ == "__main__":
     app.run(debug=True)
