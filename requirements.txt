@@ -4,7 +4,6 @@ flask_limiter
 apscheduler
 requests
 gunicorn
-git+https://github.com/angel-one/smartapi-python.git
 logzero
 websocket-client
 python-dotenv
