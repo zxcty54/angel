@@ -1,5 +1,4 @@
 import os
-import time
 import json
 import requests
 import pyotp
@@ -28,7 +27,6 @@ TOKEN_FILE = "angel_jwt.token"
 latest_data = {}
 
 app = Flask(__name__)
-
 
 def get_saved_token():
     if os.path.exists(TOKEN_FILE):
@@ -69,10 +67,11 @@ def login_and_get_token():
 
     try:
         response = requests.post(url, json=payload, headers=headers)
+        logger.info(f"Login response: {response.status_code} - {response.text}")
         if response.status_code == 200:
             jwt_token = response.json().get("data", {}).get("jwtToken")
             if jwt_token:
-                logger.info(f"✅ JWT Token: {jwt_token}")  # Log the token
+                logger.info(f"✅ JWT Token: {jwt_token}")
                 save_token(jwt_token)
                 return jwt_token
             else:
@@ -121,6 +120,7 @@ def fetch_data():
     try:
         logger.info(f"⏳ Fetching data from API: {url}")
         response = requests.post(url, json=payload, headers=headers)
+        logger.info(f"API response: {response.status_code} - {response.text}")
 
         # Handle token expiry
         if response.status_code == 401 or "Invalid Token" in response.text:
@@ -132,7 +132,7 @@ def fetch_data():
 
         if response.status_code == 200:
             latest_data = response.json()
-            logger.info(f"📈 Fetched data: {json.dumps(latest_data, indent=4)}")  # Pretty print the data
+            logger.info(f"📈 Fetched data: {json.dumps(latest_data, indent=4)}")
         else:
             logger.error(f"❌ Failed to fetch data: {response.status_code} - {response.text}")
     except Exception as e:
