@@ -11,6 +11,7 @@ import json
 import pyotp
 from dotenv import load_dotenv
 from smartapi.smartConnect import SmartConnect  # pip install angel-one-smartapi
+from Cryptodome.PublicKey import RSA
 
 # Load environment variables
 load_dotenv()
