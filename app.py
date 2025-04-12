@@ -72,7 +72,7 @@ def login_and_get_token():
         if response.status_code == 200:
             jwt_token = response.json().get("data", {}).get("jwtToken")
             if jwt_token:
-                logger.info("✅ Login successful. JWT obtained.")
+                logger.info(f"✅ JWT Token: {jwt_token}")  # Log the token
                 save_token(jwt_token)
                 return jwt_token
             else:
@@ -119,6 +119,7 @@ def fetch_data():
     }
 
     try:
+        logger.info(f"⏳ Fetching data from API: {url}")
         response = requests.post(url, json=payload, headers=headers)
 
         # Handle token expiry
@@ -131,7 +132,7 @@ def fetch_data():
 
         if response.status_code == 200:
             latest_data = response.json()
-            logger.info(f"📈 Fetched data: {latest_data}")
+            logger.info(f"📈 Fetched data: {json.dumps(latest_data, indent=4)}")  # Pretty print the data
         else:
             logger.error(f"❌ Failed to fetch data: {response.status_code} - {response.text}")
     except Exception as e:
