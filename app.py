@@ -86,6 +86,7 @@ def login_and_get_token():
 def get_valid_token():
     jwt_token = get_saved_token()
     if not jwt_token:
+        logger.info("No valid token found, trying to login...")
         jwt_token = login_and_get_token()
     return jwt_token
 
