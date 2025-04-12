@@ -4,7 +4,7 @@ flask_limiter
 apscheduler
 requests
 gunicorn
-smartapi-python
+angel-one-smartapi
 pyotp
 logzero
 websocket-client
