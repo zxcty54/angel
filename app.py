@@ -10,7 +10,7 @@ import logging
 import json
 import pyotp
 from dotenv import load_dotenv
-from SmartApi import SmartConnect  # pip install angel-one-smartapi
+from smartapi.smartConnect import SmartConnect  # pip install angel-one-smartapi
 
 # Load environment variables
 load_dotenv()
