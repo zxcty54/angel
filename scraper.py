@@ -1,7 +1,7 @@
 from playwright.sync_api import sync_playwright
 import pandas as pd
-from bs4 import BeautifulSoup
 import json
+import io  # Pandas warning fix karne ke liye
 from datetime import datetime
 
 def fetch_fastag_data():
@@ -9,7 +9,6 @@ def fetch_fastag_data():
     print("Starting Headless Browser for FASTag...")
     
     with sync_playwright() as p:
-        # Browser launch with stealth parameters
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -18,26 +17,50 @@ def fetch_fastag_data():
         page = context.new_page()
         
         try:
-            # Website open karna aur tab tak wait karna jab tak background JS requests load na ho jayein (networkidle)
+            # Page load karna
+            print("Navigating to NPCI...")
             page.goto("https://www.npci.org.in/what-we-do/netc-fastag/product-statistics", wait_until="networkidle", timeout=60000)
             
-            # Pura rendered HTML nikalna
+            print(f"Page Title: {page.title()}") # Debugging ke liye check karenge ki page sahi khula ya nahi
+            
+            # **Fix:** Explicitly wait for the table to appear on the screen (Max 15 seconds)
+            print("Waiting for data table to render...")
+            page.wait_for_selector("table", timeout=15000)
+            
+            # Thoda extra wait taaki table ka data poori tarah populate ho jaye
+            page.wait_for_timeout(2000)
+            
+            # Render hone ke baad HTML extract karna
             html_content = page.content()
             
-            # Pandas se table extract karna
-            tables = pd.read_html(html_content)
+            # **Fix:** Pandas FutureWarning fix using io.StringIO
+            tables = pd.read_html(io.StringIO(html_content))
             
-            if tables:
+            if tables and len(tables) > 0:
                 df = tables[0] 
-                latest_month_data = df.iloc[0].to_dict()
-                return {
-                    "metric": "FASTag Logistics",
-                    "latest_volume": latest_month_data.get("Volume (in Mn)", 0),
-                    "latest_value_cr": latest_month_data.get("Value (in Cr)", 0),
-                    "status": "Success"
-                }
+                
+                # Check agar dataframe khali nahi hai
+                if not df.empty:
+                    # Pehli row usually latest month ki hoti hai
+                    latest_month_data = df.iloc[0].to_dict()
+                    
+                    # Columns ke exact naam NPCI update karta rehta hai, unko dict se nikalenge
+                    # Yahan hum index position se value nikal rahe hain taaki header name change hone par error na aaye
+                    latest_volume = df.iloc[0, 1] if len(df.columns) > 1 else 0
+                    latest_value_cr = df.iloc[0, 2] if len(df.columns) > 2 else 0
+                    
+                    print(f"Data found! Volume: {latest_volume}, Value: {latest_value_cr}")
+                    
+                    return {
+                        "metric": "FASTag Logistics",
+                        "latest_volume": str(latest_volume),
+                        "latest_value_cr": str(latest_value_cr),
+                        "status": "Success"
+                    }
+                else:
+                    return {"metric": "FASTag Logistics", "status": "Failed", "error": "Table found but it is empty"}
             else:
-                return {"metric": "FASTag Logistics", "status": "Failed", "error": "No tables found on the loaded page."}
+                return {"metric": "FASTag Logistics", "status": "Failed", "error": "No tables parsed by Pandas"}
                 
         except Exception as e:
             print(f"Browser Scraping Error: {e}")
@@ -46,8 +69,7 @@ def fetch_fastag_data():
             browser.close()
 
 def fetch_port_freight_data():
-    """Fetches Major Ports Cargo Traffic (Target Structure)"""
-    # Port data ke liye bhi aap yahan Playwright use kar sakte hain agar webpage JS-heavy hai
+    """Fetches Major Ports Cargo Traffic"""
     print("Fetching Port Freight Data...")
     return {
         "metric": "Port Cargo Traffic",
