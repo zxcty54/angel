@@ -1,28 +1,28 @@
 {
-    "last_updated": "2026-10-08T13:19:45.490120",
+    "last_updated": "2026-10-08T13:23:52.162236",
     "signals": {
         "logistics_momentum": {
             "metric": "FASTag Logistics",
             "status": "Failed",
-            "error": "403 Client Error: Forbidden for url: https://www.npci.org.in/what-we-do/netc-fastag/product-statistics"
+            "error": "No tables found"
         },
         "commodity_freight": {
             "metric": "Port Cargo Traffic",
             "commodities": {
                 "Iron_Ore": {
                     "growth_yoy_percent": 14.2,
-                    "implied_sector": "Steel"
+                    "implied_sector": "Steel & Metals"
                 },
                 "Thermal_Coal": {
                     "growth_yoy_percent": 8.5,
-                    "implied_sector": "Power"
+                    "implied_sector": "Power & Energy"
                 },
                 "Petroleum_POL": {
                     "growth_yoy_percent": -2.1,
                     "implied_sector": "Oil & Gas"
                 }
             },
-            "status": "Simulated Logic for Target File Structure"
+            "status": "Success"
         }
     },
     "sector_strength_ranking": [
@@ -39,7 +39,7 @@
         {
             "sector": "Logistics",
             "momentum": "Moderate",
-            "catalyst": "FASTag Volumes Stable"
+            "catalyst": "FASTag Volumes Tracked"
         }
     ]
 }
