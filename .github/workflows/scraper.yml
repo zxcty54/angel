@@ -2,9 +2,8 @@ name: Macro Freight Data Scraper
 
 on:
   schedule:
-    # Runs at 00:00 on day 1 and 15 of the month
     - cron: '0 0 1,15 * *'
-  workflow_dispatch: # Allows you to run it manually from the GitHub UI
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -22,10 +21,15 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Dependencies
+      - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests pandas beautifulsoup4 lxml html5lib
+          pip install playwright pandas beautifulsoup4 lxml html5lib
+
+      - name: Install Playwright Browsers & OS Dependencies
+        run: |
+          playwright install chromium
+          playwright install-deps chromium
 
       - name: Run Scraper Script
         run: python scraper.py
@@ -35,6 +39,5 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
           git add macro_data.json
-          # Only commit if there are changes
-          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update macro freight data"
+          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update macro freight data via Playwright"
           git push
