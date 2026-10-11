@@ -1,0 +1,77 @@
+name: Mohalla Charcha checks
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+# Preserve the existing Python dashboard; app commands run in its own folder.
+defaults:
+  run:
+    working-directory: mohalla_charcha
+
+jobs:
+  flutter:
+    name: Flutter analyze and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install pinned Flutter SDK
+        run: bash scripts/setup_flutter_ci.sh
+      - run: flutter pub get --enforce-lockfile
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze --fatal-infos
+      - run: flutter test
+      - run: python3 -m unittest discover -s scripts/tests -v
+
+  database:
+    name: PostgreSQL/PostGIS security and counter tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local-ci-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGPASSWORD: local-ci-only
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGDATABASE: mohalla_test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install SQL client/test driver
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+          python3 -m pip install --break-system-packages 'psycopg[binary]==3.2.12'
+      - name: Create clean database (PostGIS goes in extensions schema)
+        run: psql -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE mohalla_test TEMPLATE template0;'
+      - name: Apply mock auth/storage harness and actual migration
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/00_supabase_mock.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610110001_core.sql
+      - name: Test RLS, typed metadata, hierarchy, permissions and counters
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/01_security_and_invariants.sql
+      - name: Concurrent reaction stress test
+        run: python3 supabase/tests/02_concurrent_reactions.py
+      - name: Exercise opt-in location seed and CSV upserts against PostGIS
+        run: python3 supabase/tests/03_location_import.py
