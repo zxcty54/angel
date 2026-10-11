@@ -1,0 +1,138 @@
+name: Mohalla Charcha APK → Telegram ZIP
+
+# Only trusted same-repository, non-draft PRs can receive secrets.
+# Never use pull_request_target to run changed/untrusted application code.
+on:
+  workflow_dispatch:
+    inputs:
+      backend:
+        description: App data backend (demo needs no Supabase)
+        type: choice
+        options: [demo, supabase]
+        default: demo
+      require_signing:
+        description: Require your stable release keystore
+        type: boolean
+        default: false
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+# Preserve the existing Python dashboard; app commands run in its own folder.
+defaults:
+  run:
+    working-directory: mohalla_charcha
+
+concurrency:
+  group: apk-telegram-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-send:
+    name: One universal APK → one ZIP → Telegram
+    if: >-
+      ${{ github.event_name != 'pull_request' ||
+          (github.event.pull_request.head.repo.full_name == github.repository &&
+           github.event.pull_request.draft == false) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      APP_BACKEND: ${{ inputs.backend || vars.APP_BACKEND || 'demo' }}
+      REQUIRE_SIGNING: ${{ inputs.require_signing && 'true' || 'false' }}
+      SUPABASE_URL: ${{ vars.SUPABASE_URL || secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}
+    steps:
+      - name: Checkout trusted source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check repository Telegram secrets (never log their values)
+        run: python3 scripts/send_telegram.py --check-config
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHAT_NAME: ${{ secrets.TELEGRAM_CHAT_NAME }}
+          TELEGRAM_THREAD_ID: ${{ secrets.TELEGRAM_THREAD_ID }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK and licenses
+        uses: android-actions/setup-android@v3
+
+      - name: Install pinned Flutter SDK
+        run: bash scripts/setup_flutter_ci.sh
+
+      - name: Resolve locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Analyze and test
+        run: |
+          dart format --output=none --set-exit-if-changed lib test
+          flutter analyze --fatal-infos
+          flutter test
+          python3 -m unittest discover -s scripts/tests -v
+
+      - name: Write transient build/signing configuration
+        id: configuration
+        run: |
+          python3 scripts/configure_build.py \
+            --backend "$APP_BACKEND" \
+            --defines "$RUNNER_TEMP/app-defines.json" \
+            --temp "$RUNNER_TEMP/mohalla-signing" \
+            --require-signing "$REQUIRE_SIGNING"
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Build exactly one universal release APK
+        run: |
+          # The base offset avoids downgrading earlier per-ABI version codes.
+          build_number=$((10000 + GITHUB_RUN_NUMBER))
+          echo "APP_BUILD_NUMBER=$build_number" >> "$GITHUB_ENV"
+          chmod +x android/gradlew
+          flutter build apk --release \
+            --target-platform android-arm,android-arm64,android-x64 \
+            --build-number="$build_number" \
+            --dart-define-from-file="$RUNNER_TEMP/app-defines.json"
+          test -f build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Verify the single APK signature
+        run: |
+          tools=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          test -n "$tools"
+          "$tools" verify --verbose build/app/outputs/flutter-apk/app-release.apk
+
+      - name: One APK ZIP with checksum and install guide
+        run: |
+          version=$(sed -n 's/^version: \([^+]*\).*/\1/p' pubspec.yaml)
+          python3 scripts/package_apks.py \
+            --version "$version" --build "$APP_BUILD_NUMBER" \
+            --backend "$APP_BACKEND" \
+            --signed '${{ steps.configuration.outputs.signed }}'
+
+      # No GitHub APK artifacts or release attachments. Direct Bot API delivery.
+      - name: Send the single APK ZIP to Telegram
+        run: python3 scripts/send_telegram.py --directory delivery
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHAT_NAME: ${{ secrets.TELEGRAM_CHAT_NAME }}
+          TELEGRAM_THREAD_ID: ${{ secrets.TELEGRAM_THREAD_ID }}
+          APP_SIGNED: ${{ steps.configuration.outputs.signed }}
+
+      - name: Remove private signing material and transient ZIP
+        if: always()
+        run: |
+          rm -f android/key.properties "$RUNNER_TEMP/app-defines.json"
+          rm -rf "$RUNNER_TEMP/mohalla-signing" delivery
