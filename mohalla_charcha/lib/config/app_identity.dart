@@ -5,5 +5,5 @@ abstract final class AppIdentity {
   static const primaryName = 'Bihar Local';
   static const secondaryName = 'Mohalla Charcha';
   static const shortName = 'Bihar Local';
-  static const version = '1.2.0';
+  static const version = '1.3.1';
 }
