@@ -128,7 +128,9 @@ class SupabaseRepository implements CommunityRepository {
     draft.validate();
     final uid = client.auth.currentUser?.id;
     if (uid == null || _profile == null) {
-      throw StateError('Please wait for your guest session, then finish your profile.');
+      throw StateError(
+        'Please wait for your guest session, then finish your profile.',
+      );
     }
     final paths = <String>[];
     try {
