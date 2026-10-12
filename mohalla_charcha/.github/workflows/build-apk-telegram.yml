@@ -60,8 +60,24 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK and licenses
-        uses: android-actions/setup-android@v3
+      - name: Set up Android SDK and licenses (fully non-interactive)
+        run: |
+          set -e
+          sdk_root="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          {
+            echo "ANDROID_HOME=$sdk_root"
+            echo "ANDROID_SDK_ROOT=$sdk_root"
+          } >> "$GITHUB_ENV"
+          echo "$sdk_root/platform-tools" >> "$GITHUB_PATH"
+          base="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          # sdkmanager must never stop for "(y/N)?" in CI: bootstrap the pinned
+          # combined tools, pre-answer every license prompt, then install what
+          # AGP 8.9.1 / Flutter 3.35.4 actually compile and sign against.
+          yes | "$base" --install "cmdline-tools;16.0" >/dev/null
+          sdk="$sdk_root/cmdline-tools/16.0/bin/sdkmanager"
+          yes | "$sdk" --licenses >/dev/null || true
+          "$sdk" "platform-tools" "platforms;android-36" "build-tools;36.0.0" \
+                 "platforms;android-35" "build-tools;35.0.0"
 
       - name: Install pinned Flutter SDK
         run: bash scripts/setup_flutter_ci.sh
