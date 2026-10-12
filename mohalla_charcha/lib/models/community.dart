@@ -340,9 +340,11 @@ class PostDraft {
       throw ArgumentError('Description must be 10–5000 characters.');
     }
     if (landmark.length > 150) throw ArgumentError('Landmark is too long.');
+    // Picked photos may be large; upload compression (supabase_repository)
+    // shrinks every image to ~JPEG 300 KB before it ever reaches Supabase.
     if (images.length > 3 ||
-        images.any((b) => b.lengthInBytes > 5 * 1024 * 1024)) {
-      throw ArgumentError('Up to 3 images, maximum 5 MB each.');
+        images.any((b) => b.lengthInBytes > 12 * 1024 * 1024)) {
+      throw ArgumentError('Up to 3 images, maximum 12 MB each.');
     }
     if ((latitude == null) != (longitude == null)) {
       throw ArgumentError('Both coordinates are required.');

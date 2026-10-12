@@ -181,7 +181,7 @@ void main() {
         throwsArgumentError,
       );
       expect(
-        draft(images: [Uint8List(5 * 1024 * 1024 + 1)]).validate,
+        draft(images: [Uint8List(12 * 1024 * 1024 + 1)]).validate,
         throwsArgumentError,
       );
     });

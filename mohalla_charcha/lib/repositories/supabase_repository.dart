@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/community.dart';
@@ -135,39 +138,33 @@ class SupabaseRepository implements CommunityRepository {
     final paths = <String>[];
     try {
       for (final bytes in draft.images) {
-        // The picker supplies image bytes; sniff JPEG/PNG/WebP, never trust a name.
-        final isPng =
-            bytes.length > 8 &&
-            bytes[0] == 137 &&
-            bytes[1] == 80 &&
-            bytes[2] == 78;
-        final isJpeg = bytes.length > 3 && bytes[0] == 255 && bytes[1] == 216;
-        final isWebp =
-            bytes.length > 12 &&
-            bytes[0] == 82 &&
-            bytes[1] == 73 &&
-            bytes[8] == 87 &&
-            bytes[9] == 69;
-        if (!isPng && !isJpeg && !isWebp) {
-          throw ArgumentError('Choose a JPEG, PNG or WebP image.');
+        // Client-side shrink before upload: free Supabase storage/bandwidth
+        // stays small (~0.3 MB/photo instead of 5-12 MB), and JPEG output has
+        // no EXIF, so GPS/camera metadata never leaves the phone.
+        final Uint8List compressed;
+        try {
+          compressed = await FlutterImageCompress.compressWithList(
+            bytes,
+            minWidth: 1280,
+            minHeight: 1280,
+            quality: 78,
+            format: CompressFormat.jpeg,
+            keepExif: false,
+          );
+        } catch (_) {
+          throw ArgumentError('Choose a valid JPEG, PNG or WebP image.');
         }
-        final ext = isPng
-            ? 'png'
-            : isWebp
-            ? 'webp'
-            : 'jpg';
-        final path = '$uid/${const Uuid().v4()}.$ext';
+        if (compressed.isEmpty) {
+          throw ArgumentError('Choose a valid JPEG, PNG or WebP image.');
+        }
+        final path = '$uid/${const Uuid().v4()}.jpg';
         await client.storage
             .from('bl-post-media')
             .uploadBinary(
               path,
-              bytes,
+              compressed,
               fileOptions: FileOptions(
-                contentType: isPng
-                    ? 'image/png'
-                    : isWebp
-                    ? 'image/webp'
-                    : 'image/jpeg',
+                contentType: 'image/jpeg',
                 upsert: false,
               ),
             );

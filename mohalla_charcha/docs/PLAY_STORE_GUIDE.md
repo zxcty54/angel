@@ -32,9 +32,7 @@ hain — use Telegra.ph/GitHub Pages pe host karke URL daalo.
 
 ## Personal and Sensitive User Data policy (media)
 
-App safai karta hai: photo add karne se pehle EXIF/GPS removed NAHI karta —
-uey privacy dialog me disclose kiya gaya hai (profile_screen → "Privacy &
-trust"). Is whistle-blower point ko listing/description me mat chhupo.
+v1.3.1 se photos upload hone se PEHLE bhi app ke andar compress hoti hain (~0.3 MB JPEG, 1280px) aur EXIF/GPS metadata bhi remove hota hai — privacy dialog me disclose kiya gaya hai. Store listing description me yeh privacy feature likhna review ko strong banata hai. Storage budget bhi chhota (bucket limit 1.5 MB, migration 03).
 
 ## Release steps (1st time)
 

@@ -24,7 +24,7 @@ inside the community; nothing is routed to officials.
 | Home wards (district / ULB / block / panchayat / ward) | Yes | Used to show your neighbourhood feed |
 | Optional landmark | Yes | Stored only in your own private profile; never shown publicly |
 | Posts, comments, reactions, reports | Yes | Community content you create |
-| Photos you attach | Yes | Stored in a private bucket; served only via short-lived signed URLs |
+| Photos you attach | Yes | Compressed inside the app to about 0.3 MB JPEG with GPS/camera metadata removed; stored in a private bucket and served only via short-lived signed URLs |
 | Precise GPS location | **No** | Post pins are rounded to roughly 100 metres; the app requests no GPS permission |
 | Contacts, files, call logs, calendar | **No** | Never accessed |
 | Hardware IDs (IMEI etc.), ad IDs | **No** | Never used |
@@ -94,7 +94,7 @@ Bihar Local - Mohalla Charcha बिहार के लिए एक hyperlocal
 - मोबाइल नंबर, ईमेल या OTP **नहीं** — लॉगिन एक बेनामी (guest) खाते से होता है।
 - आपका चुना हुआ **नाम** और **वार्ड** — पड़ोसियों को दिखाने के लिए।
 - वैकल्पिक **landmark** — सिर्फ़ आपकी अपनी profile में निजी रहता है।
-- आपके **पोस्ट, कमेंट, रिएक्शन, रिपोर्ट और तस्वीरें**।
+- आपके **पोस्ट, कमेंट, रिएक्शन, रिपोर्ट और तस्वीरें** (फ़ोटो ऐप में छोटी (~0.3 MB) होकर, GPS metadata हटकर upload होती है)।
 - जीपीएस की सटीक लोकेशन **नहीं** (पिन लगभग 100m तक गोल होती है); कॉन्टैक्ट्स,
   कॉल लॉग, विज्ञापन ID या भुगतान डेटा कभी **नहीं**।
 
