@@ -15,6 +15,7 @@ Future<(AppController, SharedPreferences)> launchFirst(
   Size size = const Size(390, 844),
   bool completed = false,
   double textScale = 1,
+  bool hindi = false,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -22,8 +23,11 @@ Future<(AppController, SharedPreferences)> launchFirst(
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+  // Default UI language is English; Hindi seeds keep Hindi-interface
+  // coverage for the neighbourhood audience.
   SharedPreferences.setMockInitialValues({
     if (completed) OnboardingService.completionKey: true,
+    if (hindi) 'mohalla.hindi': true,
   });
   final prefs = await SharedPreferences.getInstance();
   final c = AppController(
@@ -97,6 +101,11 @@ void main() {
     tester,
   ) async {
     final (c, prefs) = await launchFirst(tester);
+    // Fresh installs start in English by default.
+    expect(find.text('Your mohalla.\nYour voice.'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('welcome_language')));
+    await tester.pumpAndSettle();
+    expect(find.text('अपना मोहल्ला,\nअपनी आवाज़।'), findsOneWidget);
     await tester.tap(find.byKey(const Key('welcome_language')));
     await tester.pumpAndSettle();
     expect(find.text('Your mohalla.\nYour voice.'), findsOneWidget);
@@ -170,7 +179,8 @@ void main() {
   testWidgets('welcome exposes complete rural hierarchy picker', (
     tester,
   ) async {
-    await launchFirst(tester);
+    // Hindi UI keeps the Devanagari hierarchy labels this test exercises.
+    await launchFirst(tester, hindi: true);
     await tester.tap(find.byKey(const Key('welcome_next')));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const Key('welcome_choose_ward')));

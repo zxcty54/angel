@@ -71,7 +71,7 @@ void main() {
     );
     await next.initialize();
     expect(next.isSaved(id), isTrue);
-    expect(next.isHindi, isFalse);
+    expect(next.isHindi, isTrue);
     expect((await next.savedPosts()).single.id, id);
     next.dispose();
   });
