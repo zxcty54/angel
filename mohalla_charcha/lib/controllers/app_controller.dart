@@ -32,7 +32,7 @@ class AppController extends ChangeNotifier {
   bool loading = false;
   bool loadingMore = false;
   String? error;
-  bool isHindi = true;
+  bool isHindi = false; // English default; Hindi toggle persists per device
   int tab = 0;
   AreaPath? selectedLocation;
   FeedScope scope = FeedScope.ward;
@@ -68,7 +68,7 @@ class AppController extends ChangeNotifier {
   String get _settingsKey => 'mohalla.saved.${profile?.id ?? 'guest'}';
 
   Future<void> initialize() async {
-    isHindi = preferences?.getBool('mohalla.hindi') ?? true;
+    isHindi = preferences?.getBool('mohalla.hindi') ?? false;
     await reloadSession();
   }
 

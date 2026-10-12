@@ -2,16 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mohalla_charcha/controllers/app_controller.dart';
 import 'package:mohalla_charcha/main.dart';
 import 'package:mohalla_charcha/repositories/demo_repository.dart';
 
-Future<AppController> launch(WidgetTester tester, Size size) async {
+Future<AppController> launch(
+  WidgetTester tester,
+  Size size, {
+  bool hindi = true,
+}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
-  final c = AppController(DemoRepository(delay: Duration.zero));
+  // Hindi seed keeps the original Hindi-UI assertions valid while the
+  // production default has moved to English.
+  SharedPreferences.setMockInitialValues({if (hindi) 'mohalla.hindi': true});
+  final prefs = await SharedPreferences.getInstance();
+  final c = AppController(
+    DemoRepository(delay: Duration.zero, preferences: prefs),
+    preferences: prefs,
+  );
   await tester.runAsync(c.initialize);
   await c
       .completeWelcome(); // These existing tests exercise the returning-user feed.
@@ -46,6 +58,18 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+  testWidgets('fresh install defaults to English strings', (tester) async {
+    await launch(tester, const Size(390, 844), hindi: false);
+    expect(
+      find.text('Good neighbours.\nGreat neighbourhoods.'),
+      findsOneWidget,
+    );
+    expect(find.text('DEMO · SAMPLE DATA'), findsOneWidget);
+    await tester.tap(find.text('हिन्दी'));
+    await tester.pumpAndSettle();
+    expect(find.text('पड़ोस की बात, पड़ोस के साथ।'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('language toggle and mobile tabs work', (tester) async {
     await launch(tester, const Size(390, 844));
     await tester.tap(find.text('EN'));
