@@ -432,4 +432,7 @@ class DemoRepository implements CommunityRepository {
     await preferences?.remove(storageKey);
     await initialize();
   }
+
+  @override
+  Future<void> deleteAccount() => reset();
 }

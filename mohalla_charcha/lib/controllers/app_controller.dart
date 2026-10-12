@@ -344,6 +344,13 @@ class AppController extends ChangeNotifier {
     await reloadSession();
   }
 
+  /// Google Play account-deletion flow: server wipes every trace of the
+  /// caller; afterwards a fresh anonymous guest can re-onboard.
+  Future<void> deleteAccount() async {
+    await repository.deleteAccount();
+    await reloadSession();
+  }
+
   static String friendlyError(Object error) {
     if (error is PostgrestException) {
       if (error.message.contains('rate_limit')) {

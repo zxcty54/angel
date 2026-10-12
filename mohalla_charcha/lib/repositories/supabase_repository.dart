@@ -313,4 +313,12 @@ class SupabaseRepository implements CommunityRepository {
     _profile = null;
     _signed.clear();
   }
+
+  @override
+  Future<void> deleteAccount() async {
+    // Server-side cascading wipe: profile, posts, comments, reactions,
+    // reports, media rows and finally the anonymous auth row itself.
+    await client.rpc('bl_delete_my_account');
+    await signOut();
+  }
 }

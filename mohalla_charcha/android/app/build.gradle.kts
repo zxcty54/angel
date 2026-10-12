@@ -28,7 +28,9 @@ android {
     defaultConfig {
         applicationId = "in.mohallacharcha.app"
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        // Google Play requires target API 36 from 2026-08-31 for new apps and
+        // updates; pin it explicitly instead of drifting with the Flutter SDK.
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
