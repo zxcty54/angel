@@ -1,10 +1,20 @@
-# Mohalla Charcha 🏡
+# Bihar Local - Mohalla Charcha 🏡
 
 **अपना मोहल्ला, अपनी आवाज़।** Hindi-first, ward-first, people-to-people Bihar community app.
 
 **v1.1.0:** new logo/native splash + first-install welcome tour + **one universal APK / one Telegram ZIP** + detailed [file hierarchy](docs/FILE_HIERARCHY.md).
 
 > Working persistent demo + backend-ready Flutter/PostgreSQL/Supabase source. No government integration, official ticket routing or administrative escalation. No live Supabase/SMS deployment is claimed; see [launch gates](docs/LAUNCH_CHECKLIST.md).
+
+## v1.2.0 — approved rename + Google SEO
+
+Final display name: **Bihar Local - Mohalla Charcha** (29 characters). Android app ID, saved/welcome/language preference keys and database names remain unchanged. New two-line wordmark, launcher/PWA title, share text and ZIP captions use the approved identity.
+
+- [SEO/name research + keyword map](docs/SEO_NAMING.md)
+- [Static, readable website landing page](web/discover/index.html) — separate from the Flutter canvas
+- Store copy: `store/listing_en-IN.json`, `store/listing_hi-IN.json`
+- One source of truth: `branding/app_identity.json`; `python3 scripts/sync_identity.py --check`
+- No fabricated volumes/rankings, unused meta-keyword tag, fake ratings/domain/store URL. Real public domain/Play publication is still needed for indexation.
 
 ## Deployment in `zxcty54/angel`
 
@@ -23,12 +33,12 @@ flutter test --concurrency=1
 python3 -m unittest discover -s scripts/tests -v
 ```
 
-No account, OTP or internet is required for the demo. Optional live tiles require internet. Images/fonts/logo are bundled.
+No account or internet is required for the demo. Live mode signs in as an anonymous guest — no OTP. Optional live tiles require internet. Images/fonts/logo are bundled.
 
 ## First install and branding
 
 - Android launcher icon and branded native splash, including Android12+ resources.
-- **Welcome is the first Flutter screen**, before demo feed or live OTP/profile onboarding.
+- **Welcome is the first Flutter screen**, before demo feed or live guest-session/profile onboarding.
 - Three Hindi/English steps: neighbourhood, ward-first urban/rural hierarchy, P2P/privacy reminders.
 - Next/back/swipe/skip; optional illustrative demo-ward choice. Language preference persists.
 - Completion persists per device; normal launches bypass it. Clear app data/reinstall shows it again.
@@ -45,7 +55,7 @@ No account, OTP or internet is required for the demo. Optional live tiles requir
 - Upvotes, ditto / “मेरे यहाँ भी”, event RSVP, saved posts, copied summaries.
 - Three-level replies; unique reports, volunteer moderation; no auto-hiding from flags.
 - Offline illustrative map / opt-in attributed OpenStreetMap; community/events/profile.
-- Persistent dummy backend + separate real Supabase OTP/onboarding/RPC/private-media adapter.
+- Persistent dummy backend + separate real Supabase anonymous-guest/onboarding/RPC/private-media adapter.
 - RLS, private phone numbers, typed server validation, atomic counters, rate limits, moderator audit.
 
 ## Supabase kahan configure karna hai?

@@ -36,6 +36,17 @@ class SourceBundleTests(unittest.TestCase):
                 info = archive.getinfo('mohalla_charcha/gradlew')
                 self.assertTrue(info.external_attr >> 16 & stat.S_IXUSR)
 
+    def test_android_wrapper_stays_executable_after_snapshot_mode_reset(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)/'source'; (root/'android').mkdir(parents=True)
+            wrapper = root/'android/gradlew'; wrapper.write_text('fixture'); wrapper.chmod(0o644)
+            file = Path(t)/'source.zip'; bundle.package_source(file, root)
+            with zipfile.ZipFile(file) as archive:
+                info = archive.getinfo('mohalla_charcha/android/gradlew')
+                self.assertTrue(info.external_attr >> 16 & stat.S_IXUSR)
+            target = Path(t)/'copy'; bundle.copy_source(target, root)
+            self.assertTrue((target/'android/gradlew').stat().st_mode & stat.S_IXUSR)
+
     def test_copy_rejects_escaping_destination_symlinks(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t)/'source'; destination = Path(t)/'copy'; outside = Path(t)/'outside'

@@ -4,12 +4,14 @@ The historical filename/function is retained for source/API compatibility.
 """
 import argparse
 import hashlib
+import json
 import re
 import zipfile
 from pathlib import Path
 
 MAX_ZIP_BYTES = 49 * 1024 * 1024
 ABIS = ('armeabi-v7a', 'arm64-v8a', 'x86_64')
+DISPLAY_NAME = json.loads((Path(__file__).resolve().parents[1]/'branding/app_identity.json').read_text())['display_name']
 
 
 def package_apks(apk_dir: Path, output_dir: Path, version: str, build: str,
@@ -26,7 +28,7 @@ def package_apks(apk_dir: Path, output_dir: Path, version: str, build: str,
     with zipfile.ZipFile(apk) as contents:
         if any(f'lib/{abi}/libflutter.so' not in contents.namelist() for abi in ABIS):
             raise ValueError('The APK must be universal: ARM32, ARM64 and x86_64 Flutter libraries required.')
-    filename = f'Mohalla-Charcha-v{version}-build-{build}-universal.apk'
+    filename = f'Bihar-Local-Mohalla-Charcha-v{version}-build-{build}-universal.apk'
     archive = output_dir / filename.replace('.apk', '.zip')
     output_dir.mkdir(parents=True, exist_ok=True)
     if any(p != archive for p in output_dir.glob('*.zip')):
@@ -36,7 +38,7 @@ def package_apks(apk_dir: Path, output_dir: Path, version: str, build: str,
         for block in iter(lambda: file.read(256 * 1024), b''):
             digest.update(block)
     instructions = (
-        f'MOHALLA CHARCHA | {version} | build {build}\n'
+        f'{DISPLAY_NAME.upper()} | {version} | build {build}\n'
         'ONE UNIVERSAL APK: ARM32 / ARM64 / x86_64\n'
         f'Backend: {backend.upper()}\n'
         f'Signing: {"OWN RELEASE KEY" if signed else "DEVELOPMENT / DEBUG KEY"}\n\n'
@@ -66,7 +68,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--apk-dir', type=Path, default=Path('build/app/outputs/flutter-apk'))
     parser.add_argument('--output-dir', type=Path, default=Path('delivery'))
-    parser.add_argument('--version', default='1.1.0')
+    parser.add_argument('--version', default='1.2.0')
     parser.add_argument('--build', default='local')
     parser.add_argument('--backend', choices=['demo', 'supabase'], default='demo')
     parser.add_argument('--signed', choices=['true', 'false'], default='false')

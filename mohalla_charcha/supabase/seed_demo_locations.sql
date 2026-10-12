@@ -1,7 +1,7 @@
 -- OPT-IN TEST PROJECT ONLY. These mappings/centroids are ILLUSTRATIVE, NOT official.
 -- Never treat this as a complete or certified administrative boundary dataset.
 BEGIN;
-INSERT INTO public.bihar_locations(id,district,area_type,block_or_ulb,panchayat_name,ward_number,ward_alias,latitude,longitude) VALUES
+INSERT INTO public.bl_locations(id,district,area_type,block_or_ulb,panchayat_name,ward_number,ward_alias,latitude,longitude) VALUES
 (1,'Patna','urban','Patna Municipal Corporation',NULL,22,'कंकड़बाग',25.5992,85.1580),
 (2,'Patna','urban','Patna Municipal Corporation',NULL,23,'राजेंद्र नगर',25.6050,85.1630),
 (3,'Patna','urban','Patna Municipal Corporation',NULL,21,'लोहिया नगर',25.5940,85.1550),
@@ -15,5 +15,5 @@ INSERT INTO public.bihar_locations(id,district,area_type,block_or_ulb,panchayat_
 (401,'Darbhanga','urban','Darbhanga Municipal Corporation',NULL,10,'दरभंगा मोहल्ला',26.1540,85.8910),
 (501,'Bhagalpur','urban','Bhagalpur Municipal Corporation',NULL,16,'भागलपुर मोहल्ला',25.2460,86.9840)
 ON CONFLICT(id) DO NOTHING;
-SELECT setval(pg_get_serial_sequence('public.bihar_locations','id'),greatest(1,(SELECT max(id) FROM public.bihar_locations)));
+SELECT setval(pg_get_serial_sequence('public.bl_locations','id'),greatest(1,(SELECT max(id) FROM public.bl_locations)));
 COMMIT;

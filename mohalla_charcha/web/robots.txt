@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+# Add a real public site_url in branding/app_identity.json, then sync for sitemap/canonicals.

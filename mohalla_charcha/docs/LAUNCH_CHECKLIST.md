@@ -6,8 +6,8 @@ The local demo works and the backend schema/adapter are supplied. **This is not 
 
 - [ ] Create/configure Supabase and apply the migration to a fresh project.
 - [ ] Import a verified, licensed Bihar hierarchy dataset. Demo ward mappings must not become “official” claims.
-- [ ] Configure/finance the SMS provider; review India DLT, templates and OTP abuse controls.
-- [ ] Test OTP/login/session expiry/storage end-to-end against your real Supabase project.
+- [ ] Enable Anonymous Sign-ins in Supabase Auth; monitor guest sign-in abuse/rate limits (no SMS provider needed).
+- [ ] Test guest session create/restore/loss (clear app data, reinstall) end-to-end against your real Supabase project.
 - [ ] Add a stable release keystore and keep secure backups. Debug-signed builds are for development.
 - [ ] Add Telegram secrets/destination permissions; run the delivery workflow in your repository.
 - [ ] Physical-device QA: Android 7+, modern ARM64, older ARM, image picker, slow/unstable connectivity and install/update flows.

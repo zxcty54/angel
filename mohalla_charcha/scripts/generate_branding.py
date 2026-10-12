@@ -23,7 +23,7 @@ def svg():
         extra = f' stroke="{stroke}" stroke-width="{width}" stroke-linecap="round" stroke-linejoin="round"' if stroke else ''
         paths.append(f'<path fill="{fill}" d="{data}"{extra}/>')
     return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024" role="img" aria-labelledby="title desc">'
-            '<title id="title">Mohalla Charcha</title><desc id="desc">A home inside a conversation, with a second neighbour joining in.</desc>'
+            '<title id="title">Bihar Local - Mohalla Charcha</title><desc id="desc">A home inside a conversation, with a second neighbour joining in.</desc>'
             + ''.join(paths) + '</svg>\n')
 
 

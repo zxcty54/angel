@@ -22,7 +22,7 @@ class SupabaseRepository implements CommunityRepository {
       _profile = null;
       return;
     }
-    final row = await client.rpc('get_own_profile');
+    final row = await client.rpc('bl_get_own_profile');
     _profile = row == null
         ? null
         : CommunityProfile.fromJson(Map<String, dynamic>.from(row as Map));
@@ -37,7 +37,7 @@ class SupabaseRepository implements CommunityRepository {
     // Supabase defaults to a 1,000-row cap; explicitly paginate the catalogue.
     for (var offset = 0; ; offset += 1000) {
       final rows = await client
-          .from('bihar_locations')
+          .from('bl_locations')
           .select(
             'id,district,area_type,block_or_ulb,panchayat_name,ward_number,ward_alias,latitude,longitude',
           )
@@ -66,7 +66,7 @@ class SupabaseRepository implements CommunityRepository {
     if (pending.isNotEmpty) {
       try {
         final urls = await client.storage
-            .from('post-media')
+            .from('bl-post-media')
             .createSignedUrlsResult(pending, 3600);
         for (final result in urls) {
           if (result is SignedUrlSuccess) {
@@ -91,7 +91,7 @@ class SupabaseRepository implements CommunityRepository {
   @override
   Future<FeedPage> getFeed(FeedQuery q, {FeedCursor? cursor}) async {
     final rows = await client.rpc(
-      'get_feed',
+      'bl_get_feed',
       params: {
         'p_location_id': q.location.id,
         'p_scope': q.scope.name,
@@ -112,14 +112,14 @@ class SupabaseRepository implements CommunityRepository {
 
   @override
   Future<CommunityPost?> getPost(String id) async {
-    final row = await client.rpc('get_post', params: {'p_post_id': id});
+    final row = await client.rpc('bl_get_post', params: {'p_post_id': id});
     if (row == null) return null;
     return (await _hydrate([row])).single;
   }
 
   @override
   Future<List<CommunityPost>> getMyPosts() async {
-    final rows = await client.rpc('get_my_posts');
+    final rows = await client.rpc('bl_get_my_posts');
     return _hydrate(rows as List);
   }
 
@@ -128,7 +128,7 @@ class SupabaseRepository implements CommunityRepository {
     draft.validate();
     final uid = client.auth.currentUser?.id;
     if (uid == null || _profile == null) {
-      throw StateError('Please complete your phone login and profile first.');
+      throw StateError('Please wait for your guest session, then finish your profile.');
     }
     final paths = <String>[];
     try {
@@ -156,7 +156,7 @@ class SupabaseRepository implements CommunityRepository {
             : 'jpg';
         final path = '$uid/${const Uuid().v4()}.$ext';
         await client.storage
-            .from('post-media')
+            .from('bl-post-media')
             .uploadBinary(
               path,
               bytes,
@@ -172,7 +172,7 @@ class SupabaseRepository implements CommunityRepository {
         paths.add(path);
       }
       final id = await client.rpc(
-        'create_post',
+        'bl_create_post',
         params: {
           'p_type': draft.type.key,
           'p_title': draft.title.trim(),
@@ -194,7 +194,7 @@ class SupabaseRepository implements CommunityRepository {
       // Remove uploads only if not attached. Storage DELETE policy enforces this.
       if (paths.isNotEmpty) {
         try {
-          await client.storage.from('post-media').remove(paths);
+          await client.storage.from('bl-post-media').remove(paths);
         } on StorageException {
           /* Scheduled orphan cleanup handles interrupted clients. */
         }
@@ -210,7 +210,7 @@ class SupabaseRepository implements CommunityRepository {
     bool active,
   ) async {
     await client.rpc(
-      'set_reaction',
+      'bl_set_reaction',
       params: {'p_post_id': postId, 'p_reaction': type.key, 'p_active': active},
     );
     final p = await getPost(postId);
@@ -221,7 +221,7 @@ class SupabaseRepository implements CommunityRepository {
   @override
   Future<List<ThreadComment>> getComments(String postId) async {
     final rows = await client.rpc(
-      'get_comments',
+      'bl_get_comments',
       params: {'p_post_id': postId},
     );
     return (rows as List)
@@ -236,7 +236,7 @@ class SupabaseRepository implements CommunityRepository {
     String? parentId,
   }) async {
     final row = await client.rpc(
-      'add_comment',
+      'bl_add_comment',
       params: {
         'p_post_id': postId,
         'p_content': content.trim(),
@@ -249,7 +249,7 @@ class SupabaseRepository implements CommunityRepository {
   @override
   Future<CommunityPost> setResolved(String postId, bool resolved) async {
     await client.rpc(
-      'set_issue_resolution',
+      'bl_set_issue_resolution',
       params: {'p_post_id': postId, 'p_resolved': resolved},
     );
     final p = await getPost(postId);
@@ -260,14 +260,14 @@ class SupabaseRepository implements CommunityRepository {
   @override
   Future<void> report(String postId, String reason) async {
     await client.rpc(
-      'report_post',
+      'bl_report_post',
       params: {'p_post_id': postId, 'p_reason': reason},
     );
   }
 
   @override
   Future<void> deletePost(String postId) async {
-    await client.rpc('delete_post', params: {'p_post_id': postId});
+    await client.rpc('bl_delete_post', params: {'p_post_id': postId});
   }
 
   @override
@@ -277,7 +277,7 @@ class SupabaseRepository implements CommunityRepository {
     String landmark,
   ) async {
     final row = await client.rpc(
-      'save_profile',
+      'bl_save_profile',
       params: {
         'p_name': name.trim(),
         'p_location_id': location.id,
@@ -292,7 +292,7 @@ class SupabaseRepository implements CommunityRepository {
   Future<CommunityStats> getStats(AreaPath location) async {
     final j = Map<String, dynamic>.from(
       await client.rpc(
-            'community_stats',
+            'bl_community_stats',
             params: {'p_location_id': location.id},
           )
           as Map,

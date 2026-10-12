@@ -153,17 +153,7 @@ class _Sidebar extends StatelessWidget {
             children: [
               BrandMark(size: 41),
               SizedBox(width: 11),
-              Expanded(
-                child: Text(
-                  'Mohalla\nCharcha',
-                  style: TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w800,
-                    height: 1.08,
-                    letterSpacing: -.7,
-                  ),
-                ),
-              ),
+              Expanded(child: BrandWordmark(titleSize: 19, subtitleSize: 9)),
             ],
           ),
           const SizedBox(height: 13),
@@ -641,7 +631,7 @@ class _CommunitySidePanel extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const Text(
-            'MOHALLA CHARCHA © 2026',
+            'BIHAR LOCAL · MOHALLA CHARCHA © 2026',
             style: TextStyle(
               fontSize: 8,
               letterSpacing: .8,

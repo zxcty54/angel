@@ -17,6 +17,7 @@ import zipfile
 from pathlib import Path
 
 MAX_ZIP_BYTES = 49 * 1024 * 1024
+DISPLAY_NAME = json.loads((Path(__file__).resolve().parents[1]/'branding/app_identity.json').read_text())['display_name']
 
 
 def configuration(env=None):
@@ -107,7 +108,7 @@ def main():
     path = archive_to_send(args.directory)
     backend = os.getenv('APP_BACKEND', 'demo').upper()
     signing = 'own release key' if os.getenv('APP_SIGNED') == 'true' else 'development/debug key'
-    caption = (f'Mohalla Charcha | {backend} | {signing}\n'
+    caption = (f'{DISPLAY_NAME} | {backend} | {signing}\n'
                f'Commit {os.getenv("GITHUB_SHA", "local")[:8]} · Run {os.getenv("GITHUB_RUN_NUMBER", "local")}\n'
                'One universal APK: Android 7+. New logo + first-launch welcome tour. Extract ZIP and install. P2P only; no government ticket routing.')
     send_document(path, token, chat, thread, caption)

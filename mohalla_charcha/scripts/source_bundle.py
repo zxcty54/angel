@@ -42,6 +42,8 @@ def copy_source(destination, root=ROOT):
             raise ValueError('Destination contains an escaping symlink; refusing to overwrite outside it.')
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(file, target)
+        if relative.as_posix() == "android/gradlew":
+            target.chmod(0o755)
         count += 1
     return count
 
@@ -52,7 +54,10 @@ def package_source(destination, root=ROOT):
     count = 0
     with zipfile.ZipFile(destination, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
         for file, relative in source_files(root):
-            archive.write(file, Path('mohalla_charcha')/relative)
+            info = zipfile.ZipInfo.from_file(file, Path('mohalla_charcha')/relative)
+            if relative.as_posix() == 'android/gradlew':
+                info.external_attr = (0o100755 << 16) | (info.external_attr & 0xffff)
+            archive.writestr(info, file.read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
             count += 1
     with zipfile.ZipFile(destination) as archive:
         if archive.testzip() is not None:

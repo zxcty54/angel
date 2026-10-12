@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../controllers/app_controller.dart';
 import '../../models/community.dart';
 import '../../theme/app_theme.dart';
+import '../../config/app_identity.dart';
 
 String tr(BuildContext context, String hi, String en) =>
     context.read<AppController>().text(hi, en);
@@ -84,7 +85,7 @@ class BrandMark extends StatelessWidget {
   final double size;
   @override
   Widget build(BuildContext context) => Semantics(
-    label: 'Mohalla Charcha logo',
+    label: '${AppIdentity.displayName} logo',
     image: true,
     child: Image.asset(
       'assets/branding/logo.png',
@@ -92,6 +93,45 @@ class BrandMark extends StatelessWidget {
       height: size,
       fit: BoxFit.contain,
       excludeFromSemantics: true,
+    ),
+  );
+}
+
+/// Two-line identity keeps the complete brand legible on narrow screens.
+class BrandWordmark extends StatelessWidget {
+  const BrandWordmark({super.key, this.titleSize = 19, this.subtitleSize = 9});
+  final double titleSize, subtitleSize;
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: AppIdentity.displayName,
+    excludeSemantics: true,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          AppIdentity.primaryName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: titleSize,
+            fontWeight: FontWeight.w800,
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          AppIdentity.secondaryName,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: subtitleSize,
+            fontWeight: FontWeight.w600,
+            height: 1.25,
+            color: MCColors.muted,
+          ),
+        ),
+      ],
     ),
   );
 }

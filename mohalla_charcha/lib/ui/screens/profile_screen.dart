@@ -5,6 +5,7 @@ import '../../models/community.dart';
 import '../../models/location.dart';
 import '../../repositories/demo_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../config/app_identity.dart';
 import '../widgets/common.dart';
 import '../widgets/location_picker.dart';
 import '../widgets/post_card.dart';
@@ -75,7 +76,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         LabelPill(
                           text: c.isDemo
                               ? c.text('Demo पड़ोसी', 'Demo neighbour')
-                              : c.text('मोबाइल सत्यापित', 'Phone verified'),
+                              : c.text('गेस्ट पड़ोसी', 'Guest neighbour'),
                           icon: c.isDemo
                               ? Icons.person_outline
                               : Icons.verified_user_outlined,
@@ -160,13 +161,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                 ],
               ),
-              if (p.phone != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  '••••••${p.phone!.substring(p.phone!.length - 4)} · ${c.text('सिर्फ़ आपको दिखता है', 'only visible to you')}',
-                  style: const TextStyle(fontSize: 11, color: MCColors.muted),
-                ),
-              ],
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
@@ -275,8 +269,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           'This is a local demo. Posts, reactions and replies stay on this device/browser. No real SMS is sent.',
                         )
                       : c.text(
-                          'मोबाइल सत्यापन का मतलब निवास सत्यापन नहीं। सभी पोस्ट community P2P हैं; सरकारी सिस्टम से कोई जुड़ाव नहीं।',
-                          'Phone verification does not verify residency. All posts are community P2P; there is no government integration.',
+                          'गेस्ट खाता निवास सत्यापित नहीं करता। सभी पोस्ट community P2P हैं; सरकारी सिस्टम से कोई जुड़ाव नहीं।',
+                          'A guest account does not verify residency. All posts are community P2P; there is no government integration.',
                         ),
                   style: const TextStyle(
                     color: MCColors.amber,
@@ -418,7 +412,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 12),
         Center(
           child: Text(
-            'Mohalla Charcha · 1.0.0\nMade for Bihar. Built around people.',
+            '${AppIdentity.displayName} · ${AppIdentity.version}\nMade for Bihar. Built around people.',
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: MCColors.muted,
@@ -440,8 +434,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         content: SingleChildScrollView(
           child: Text(
             c.text(
-              '• Live mode में मोबाइल नंबर सिर्फ़ आपके profile में private रहता है।\n\n• वार्ड और वैकल्पिक landmark साझा किए जाते हैं। पूरा घर का पता न लिखें।\n\n• GPS नहीं लिया जाता। पिन लगभग 100m तक गोल रखे जाते हैं।\n\n• फ़ोटो से पहचान या metadata leak हो सकती है। संवेदनशील तस्वीर न साझा करें।\n\n• रिपोर्ट community moderation के लिए है; किसी अधिकारी को नहीं भेजी जाती।\n\n• Demo डेटा इसी browser/device में रहता है। रीसेट से इसे हटाया जा सकता है।\n\n• Live account deletion के लिए project operator से संपर्क करें। लॉन्च से पहले operator की contact/privacy policy जोड़ना ज़रूरी है।',
-              '• In live mode, your phone number is private to your own profile.\n\n• Your ward and optional landmark are shared. Do not write an exact home address.\n\n• GPS is not collected. Coordinates are rounded to roughly 100m.\n\n• Photos may reveal identity or metadata. Never share sensitive images.\n\n• Reports are community moderation, not official complaints.\n\n• Demo data stays on this browser/device and can be reset.\n\n• Live account deletion requires the project operator. Add operator contact details and a reviewed privacy policy before launch.',
+              '• Live mode किसी मोबाइल नंबर या OTP के बिना गेस्ट सत्र उपयोग करता है। app data मिटने/रीसेट पर वही guest खाता मिलता है।\n\n• वार्ड और वैकल्पिक landmark साझा किए जाते हैं। पूरा घर का पता न लिखें।\n\n• GPS नहीं लिया जाता। पिन लगभग 100m तक गोल रखे जाते हैं।\n\n• फ़ोटो से पहचान या metadata leak हो सकती है। संवेदनशील तस्वीर न साझा करें।\n\n• रिपोर्ट community moderation के लिए है; किसी अधिकारी को नहीं भेजी जाती।\n\n• Demo डेटा इसी browser/device में रहता है। रीसेट से इसे हटाया जा सकता है।\n\n• Live account deletion के लिए project operator से संपर्क करें। लॉन्च से पहले operator की contact/privacy policy जोड़ना ज़रूरी है।',
+              '• Live mode uses an anonymous guest session — no phone number or OTP. Clearing app data loses that guest account.\n\n• Your ward and optional landmark are shared. Do not write an exact home address.\n\n• GPS is not collected. Coordinates are rounded to roughly 100m.\n\n• Photos may reveal identity or metadata. Never share sensitive images.\n\n• Reports are community moderation, not official complaints.\n\n• Demo data stays on this browser/device and can be reset.\n\n• Live account deletion requires the project operator. Add operator contact details and a reviewed privacy policy before launch.',
             ),
             style: const TextStyle(fontSize: 12, height: 1.7),
           ),

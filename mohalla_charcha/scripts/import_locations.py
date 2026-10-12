@@ -54,7 +54,7 @@ def render_import(path: Path, source: str = 'UNVERIFIED — check source before 
     safe_source = ' '.join(source.splitlines())
     return ('-- Structurally validated, NOT officially certified by this helper.\n'
             f'-- Source supplied by operator: {safe_source}\nBEGIN;\n'
-            'INSERT INTO public.bihar_locations(' + ','.join(COLUMNS) + ') VALUES\n'
+            'INSERT INTO public.bl_locations(' + ','.join(COLUMNS) + ') VALUES\n'
             + ',\n'.join(values) + '\nON CONFLICT ON CONSTRAINT location_full_path DO UPDATE SET\n'
             'ward_alias=EXCLUDED.ward_alias, latitude=EXCLUDED.latitude, longitude=EXCLUDED.longitude;\nCOMMIT;\n')
 

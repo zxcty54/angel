@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../controllers/app_controller.dart';
 import '../../models/community.dart';
 import '../../theme/app_theme.dart';
+import '../../config/app_identity.dart';
 import 'common.dart';
 
 class PostCard extends StatelessWidget {
@@ -467,7 +468,7 @@ class PostCard extends StatelessWidget {
           await Clipboard.setData(
             ClipboardData(
               text:
-                  '${p.title}\n\n${p.description}\n\n${p.location.fullLabel}\n— Mohalla Charcha (P2P community)',
+                  '${p.title}\n\n${p.description}\n\n${p.location.fullLabel}\n— ${AppIdentity.displayName} (P2P community)',
             ),
           );
           if (context.mounted) {

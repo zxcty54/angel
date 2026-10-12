@@ -74,6 +74,7 @@ jobs:
           dart format --output=none --set-exit-if-changed lib test
           flutter analyze --fatal-infos
           flutter test
+          python3 scripts/sync_identity.py --check
           python3 -m unittest discover -s scripts/tests -v
 
       - name: Write transient build/signing configuration

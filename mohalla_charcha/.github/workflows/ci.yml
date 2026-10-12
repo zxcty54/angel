@@ -20,6 +20,7 @@ jobs:
       - name: Install pinned Flutter SDK
         run: bash scripts/setup_flutter_ci.sh
       - run: flutter pub get --enforce-lockfile
+      - run: python3 scripts/sync_identity.py --check
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze --fatal-infos
       - run: flutter test
@@ -63,7 +64,7 @@ jobs:
       - name: Apply mock auth/storage harness and actual migration
         run: |
           psql -v ON_ERROR_STOP=1 -f supabase/tests/00_supabase_mock.sql
-          psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610110001_core.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/202610120001_bihar_local_core.sql
       - name: Test RLS, typed metadata, hierarchy, permissions and counters
         run: psql -v ON_ERROR_STOP=1 -f supabase/tests/01_security_and_invariants.sql
       - name: Concurrent reaction stress test
