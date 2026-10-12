@@ -27,7 +27,7 @@ def main():
         db.execute(seed)
         db.execute(seed)  # documented opt-in seed can be re-applied
         ids = [1, 2, 3, 4, 101, 102, 103, 201, 202, 301, 401, 501]
-        assert db.execute('SELECT count(*) FROM public.bihar_locations WHERE id=ANY(%s)', (ids,)).fetchone()[0] == 12
+        assert db.execute('SELECT count(*) FROM public.bl_locations WHERE id=ANY(%s)', (ids,)).fetchone()[0] == 12
         file = Path(tmp) / 'fixtures.csv'
         rows = [
             ['Patna', 'urban', 'Patna Municipal Corporation', '', 22, 'आयात परीक्षण', 25.599, 85.158],
@@ -41,14 +41,14 @@ def main():
             db.execute(render_import(file, 'Integration fixture only — not official'))
         apply()
         apply()  # NULL urban panchayat conflicts correctly; no duplicate paths
-        assert db.execute("SELECT count(*) FROM public.bihar_locations WHERE block_or_ulb LIKE 'IMPORT TEST%%'").fetchone()[0] == 3
-        alias, longitude, latitude = db.execute('SELECT ward_alias, extensions.st_x(geom), extensions.st_y(geom) FROM public.bihar_locations WHERE id=1').fetchone()
+        assert db.execute("SELECT count(*) FROM public.bl_locations WHERE block_or_ulb LIKE 'IMPORT TEST%%'").fetchone()[0] == 3
+        alias, longitude, latitude = db.execute('SELECT ward_alias, extensions.st_x(geom), extensions.st_y(geom) FROM public.bl_locations WHERE id=1').fetchone()
         assert (alias, longitude, latitude) == ('आयात परीक्षण', 85.158, 25.599)
-        assert db.execute('SELECT ward_alias FROM public.bihar_locations WHERE block_or_ulb=%s', ("IMPORT TEST ULB's",)).fetchone()[0] == "Ward's alias"
+        assert db.execute('SELECT ward_alias FROM public.bl_locations WHERE block_or_ulb=%s', ("IMPORT TEST ULB's",)).fetchone()[0] == "Ward's alias"
         rows[1][5:] = ['Updated alias', 25.6, 85.2]
         apply()
-        assert db.execute('SELECT ward_alias, latitude, longitude FROM public.bihar_locations WHERE block_or_ulb=%s', ("IMPORT TEST ULB's",)).fetchone() == ('Updated alias', 25.6, 85.2)
-        assert db.execute("SELECT count(DISTINCT panchayat_name) FROM public.bihar_locations WHERE block_or_ulb='IMPORT TEST BLOCK' AND ward_number=4").fetchone()[0] == 2
+        assert db.execute('SELECT ward_alias, latitude, longitude FROM public.bl_locations WHERE block_or_ulb=%s', ("IMPORT TEST ULB's",)).fetchone() == ('Updated alias', 25.6, 85.2)
+        assert db.execute("SELECT count(DISTINCT panchayat_name) FROM public.bl_locations WHERE block_or_ulb='IMPORT TEST BLOCK' AND ward_number=4").fetchone()[0] == 2
     print('PASS: illustrative seed x2; importer x3; full-path upsert, Unicode/quotes, nulls, PostGIS coordinates and rural ward isolation.')
 
 

@@ -6,10 +6,12 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/supabase_config.dart';
+import 'config/app_identity.dart';
 import 'controllers/app_controller.dart';
 import 'repositories/community_repository.dart';
 import 'repositories/demo_repository.dart';
 import 'repositories/supabase_repository.dart';
+import 'services/guest_auth_service.dart';
 import 'theme/app_theme.dart';
 import 'ui/app_shell.dart';
 import 'ui/screens/auth_screen.dart';
@@ -28,6 +30,9 @@ Future<void> main() async {
         url: SupabaseConfig.url,
         publishableKey: SupabaseConfig.anonKey,
       );
+      // No-OTP guest login: restores the device session or silently
+      // creates a new anonymous one before any profile/feed call.
+      await GuestAuthService(Supabase.instance.client).ensureSession();
       repository = SupabaseRepository(Supabase.instance.client);
     } else {
       repository = DemoRepository(preferences: prefs);
@@ -52,7 +57,7 @@ Future<void> main() async {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 560),
                 child: Text(
-                  'Mohalla Charcha setup error\n\n${AppController.friendlyError(e)}\n\n'
+                  '${AppIdentity.displayName} setup error\n\n${AppController.friendlyError(e)}\n\n'
                   'See lib/config/supabase_config.dart and docs/SUPABASE_SETUP.md.\n'
                   'Use USE_SUPABASE=false for the working local demo.',
                   style: const TextStyle(fontSize: 15, height: 1.8),
@@ -72,7 +77,7 @@ class MohallaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.watch<AppController>();
     return MaterialApp(
-      title: 'Mohalla Charcha',
+      title: AppIdentity.displayName,
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
       locale: Locale(c.isHindi ? 'hi' : 'en'),
@@ -103,7 +108,7 @@ class _AuthGate extends StatelessWidget {
               BrandMark(size: 64),
               SizedBox(height: 22),
               Text(
-                'Mohalla Charcha',
+                AppIdentity.displayName,
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
               ),
               SizedBox(height: 20),
@@ -139,8 +144,84 @@ class _AuthGate extends StatelessWidget {
         ),
       );
     }
-    if (!c.hasSession) return const PhoneLoginScreen();
+    // Startup normally guarantees an anonymous guest session already; this
+    // branch only appears if the guest sign-in itself failed.
+    if (!c.hasSession) return const _GuestSessionRetry();
     if (c.profile == null) return const ProfileOnboardingScreen();
     return const AppShell();
+  }
+}
+
+/// Shown only when the anonymous guest session could not be established.
+class _GuestSessionRetry extends StatefulWidget {
+  const _GuestSessionRetry();
+  @override
+  State<_GuestSessionRetry> createState() => _GuestSessionRetryState();
+}
+
+class _GuestSessionRetryState extends State<_GuestSessionRetry> {
+  bool _busy = false;
+  Future<void> _join() async {
+    setState(() => _busy = true);
+    try {
+      final ok = await GuestAuthService(
+        Supabase.instance.client,
+      ).ensureSession();
+      if (ok && mounted) await context.read<AppController>().reloadSession();
+    } catch (e) {
+      if (mounted) notifyUser(context, AppController.friendlyError(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.watch<AppController>();
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const BrandMark(size: 56),
+                const SizedBox(height: 22),
+                Text(
+                  c.text(
+                    'मेहमान सत्र शुरू नहीं हुआ',
+                    'Guest session did not start',
+                  ),
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  c.text(
+                    'किसी नंबर या OTP की ज़रूरत नहीं है। कनेक्शन जाँचकर दोबारा कोशिश करें।',
+                    'No number or OTP is needed. Check your connection and try again.',
+                  ),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.black54, height: 1.7),
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: _busy ? null : _join,
+                  child: Text(
+                    _busy
+                        ? c.text('थोड़ा रुकें…', 'One moment…')
+                        : c.text('फिर जुड़ें', 'Join again'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

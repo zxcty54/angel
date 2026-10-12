@@ -4,6 +4,19 @@ Is guide se pata chalega **kaunsi file edit karni hai**, app ka flow kahan se sh
 
 **`zxcty54/angel` deployment:** Flutter project `mohalla_charcha/` mein hai; existing Python project untouched hai. Active workflows repository-root `.github/` mein hain. [Actual layout](REPOSITORY_LAYOUT.md) dekhein. Neeche ke paths Flutter project ke relative hain.
 
+## v1.2.0 identity / SEO files
+
+- `branding/app_identity.json`: approved display name/version/copy; optional real `site_url`.
+- `lib/config/app_identity.dart`: generated Dart identity; UI and shared summaries use it.
+- `BrandWordmark` in `ui/widgets/common.dart`: responsive Bihar Local / Mohalla Charcha typography.
+- `scripts/sync_identity.py`: generate/check Android strings, PWA/root metadata, static landing; optional real canonical/sitemap.
+- `seo/landing.template.html`: editable readable website content and inline SVG/CSS.
+- `web/discover/index.html`: generated static SEO landing, usable without Flutter/JS.
+- `seo/keyword-map.csv`: relevant phrases/intents; volumes explicitly unmeasured.
+- `store/listing_*.json`: truthful English/Hindi store-copy drafts.
+- `docs/SEO_NAMING.md`: qualitative research, sources, decision and publication steps.
+- `test/identity_test.dart`, `scripts/tests/test_seo.py`: name/layout/IDs/limits/metadata tests.
+
 ## 1. App start se home feed tak
 
 ```text
@@ -72,14 +85,14 @@ mohalla_charcha/
 │   │   └── supabase_repository.dart # live SQL RPC / private-media adapter
 │   ├── services/
 │   │   ├── onboarding_service.dart # device-local first-launch completion
-│   │   └── phone_auth_service.dart # real phone OTP API wrapper
+│   │   └── guest_auth_service.dart # no-OTP anonymous guest session (Supabase)
 │   ├── theme/
 │   │   └── app_theme.dart         # palette, typography, component styling
 │   └── ui/
 │       ├── app_shell.dart         # responsive navigation, create-post entry
 │       ├── screens/
 │       │   ├── welcome_screen.dart # FIRST-LAUNCH tour + Profile replay
-│       │   ├── auth_screen.dart   # live OTP + verified profile onboarding
+│       │   ├── auth_screen.dart   # guest profile onboarding (no phone/OTP)
 │       │   ├── feed_screen.dart   # ward-first feed/search/scopes/filters
 │       │   ├── map_screen.dart    # offline illustration + opt-in OSM
 │       │   ├── community_screen.dart # community stats / events
@@ -117,7 +130,7 @@ mohalla_charcha/
 │   └── icons/                     # 192/512px web/maskable icons
 │
 ├── supabase/
-│   ├── migrations/202610110001_core.sql # schema + RLS + RPCs + private storage
+│   ├── migrations/202610120001_bihar_local_core.sql # bl_ namespaced schema + RLS + RPCs + private storage
 │   ├── seed_demo_locations.sql     # OPT-IN illustrative locations, not official
 │   ├── location_import_template.csv # blank 8-column master-data template
 │   └── tests/

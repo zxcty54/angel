@@ -5,7 +5,7 @@ import '../../theme/app_theme.dart';
 import '../widgets/common.dart';
 import '../widgets/location_picker.dart';
 
-/// First-install education comes BEFORE demo/feed or live OTP/profile setup.
+/// First-install education comes BEFORE demo/feed or the live guest session and profile setup.
 /// Replay from Profile does not reset preferences, session or community data.
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key, this.replay = false});
@@ -95,13 +95,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           const BrandMark(size: 42),
                           const SizedBox(width: 11),
                           const Expanded(
-                            child: Text(
-                              'Mohalla\nCharcha',
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                height: 1.15,
-                              ),
+                            child: BrandWordmark(
+                              titleSize: 17,
+                              subtitleSize: 9,
                             ),
                           ),
                           Flexible(
@@ -302,8 +298,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                                       'Explore my mohalla',
                                                     )
                                                   : c.text(
-                                                      'मोबाइल से जुड़ें',
-                                                      'Join with my phone',
+                                                      'मोहल्ले से जुड़ें',
+                                                      'Join my mohalla',
                                                     ),
                                               textAlign: TextAlign.center,
                                             ),
@@ -509,8 +505,8 @@ class _WelcomeContent extends StatelessWidget {
           else if (!c.isDemo)
             Text(
               c.text(
-                'फोन सत्यापन के बाद आप अपना असली वार्ड चुनेंगे।',
-                'Choose your real home ward after phone verification.',
+                'सीधे अपना असली वार्ड चुनेंगे — नंबर या OTP नहीं चाहिए।',
+                'Pick your real home ward directly — no number or OTP needed.',
               ),
               style: const TextStyle(
                 fontSize: 11,
@@ -523,10 +519,10 @@ class _WelcomeContent extends StatelessWidget {
           const SizedBox(height: 19),
           _Guideline(
             Icons.shield_outlined,
-            c.text('नंबर निजी है', 'Your number stays private'),
+            c.text('पहचान सीमित है', 'Your identity stays limited'),
             c.text(
-              'पड़ोसियों को आपका मोबाइल नंबर नहीं दिखता।',
-              'Other neighbours do not see your phone number.',
+              'कोई मोबाइल नंबर या OTP नहीं लिया जाता। पड़ोसी सिर्फ़ आपका नाम और वार्ड देखते हैं।',
+              'No phone number or OTP is collected. Neighbours only see your name and ward.',
             ),
           ),
           const SizedBox(height: 12),

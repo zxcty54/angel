@@ -1,17 +1,35 @@
 {
-  "name": "Mohalla Charcha",
-  "short_name": "Mohalla",
+  "name": "Bihar Local - Mohalla Charcha",
+  "short_name": "Bihar Local",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#F6F7F3",
   "theme_color": "#BD5337",
-  "description": "A ward-first P2P community for Bihar.",
+  "description": "Bihar Local - Mohalla Charcha is a ward-first P2P community for Bihar: local updates, civic discussions, shop reviews and events. No government ticket routing.",
   "orientation": "any",
   "prefer_related_applications": false,
   "icons": [
-    {"src":"icons/Icon-192.png","sizes":"192x192","type":"image/png"},
-    {"src":"icons/Icon-512.png","sizes":"512x512","type":"image/png"},
-    {"src":"icons/Icon-maskable-192.png","sizes":"192x192","type":"image/png","purpose":"maskable"},
-    {"src":"icons/Icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+    {
+      "src": "icons/Icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/Icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/Icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/Icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

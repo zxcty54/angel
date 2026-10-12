@@ -128,7 +128,6 @@ class CommunityProfile {
     this.landmark = '',
     this.reputation = 0,
     this.avatarUrl,
-    this.phone,
   });
   final String id;
   final String name;
@@ -136,9 +135,6 @@ class CommunityProfile {
   final String landmark;
   final int reputation;
   final String? avatarUrl;
-
-  /// Private, only hydrated for the current user. Never returned in public cards.
-  final String? phone;
   String get initials => name
       .trim()
       .split(RegExp(r'\s+'))
@@ -156,7 +152,6 @@ class CommunityProfile {
     landmark: landmark ?? this.landmark,
     reputation: reputation,
     avatarUrl: avatarUrl,
-    phone: phone,
   );
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -165,7 +160,6 @@ class CommunityProfile {
     'locality_landmark': landmark,
     'reputation_score': reputation,
     'avatar_url': avatarUrl,
-    'phone_number': phone,
   };
   factory CommunityProfile.fromJson(Map<String, dynamic> j) => CommunityProfile(
     id: j['id'] as String,
@@ -176,7 +170,6 @@ class CommunityProfile {
     landmark: (j['locality_landmark'] ?? '') as String,
     reputation: (j['reputation_score'] as num?)?.toInt() ?? 0,
     avatarUrl: j['avatar_url'] as String?,
-    phone: j['phone_number'] as String?,
   );
 }
 
