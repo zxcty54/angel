@@ -32,6 +32,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _items = _saved ? c.savedPosts() : c.repository.getMyPosts();
   }
 
+  Future<void> _confirmDeleteAccount() async {
+    final c = context.read<AppController>();
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded, color: Colors.red),
+        title: Text(c.text('अकाउंट डिलीट करें?', 'Delete account?')),
+        content: Text(
+          c.text(
+            'आपका नाम, वार्ड, सभी पोस्ट, कमेंट, रिएक्शन और तस्वीरें हमेशा के लिए हटा दी जाएंगी। यह वापस नहीं लिया जा सकता।\n\nडिलीट के बाद app एक नया गेस्ट खाता बनाएगा।',
+            'Your name, ward, posts, comments, reactions and photos will be permanently removed. This cannot be undone.\n\nAfter deletion the app will create a fresh guest account.',
+          ),
+          style: const TextStyle(fontSize: 13, height: 1.7),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(d, false),
+            child: Text(c.text('रद्द करें', 'Cancel')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(d, true),
+            child: Text(c.text('हाँ, सब डिलीट करें', 'Yes, delete all')),
+          ),
+        ],
+      ),
+    );
+    if (yes != true) return;
+    if (!mounted) return;
+    await safeAction(context, () async {
+      await c.deleteAccount();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.watch<AppController>();
@@ -409,6 +443,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: const Icon(Icons.logout, size: 18),
             label: Text(c.text('लॉग आउट', 'Sign out')),
           ),
+        if (!c.isDemo) ...[
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton.icon(
+              onPressed: _confirmDeleteAccount,
+              icon: const Icon(
+                Icons.delete_forever_outlined,
+                size: 18,
+                color: Colors.red,
+              ),
+              label: Text(
+                c.text('अकाउंट डिलीट करें', 'Delete account & data'),
+                style: const TextStyle(color: Colors.red, fontSize: 12),
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         Center(
           child: Text(
@@ -434,8 +485,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         content: SingleChildScrollView(
           child: Text(
             c.text(
-              '• Live mode किसी मोबाइल नंबर या OTP के बिना गेस्ट सत्र उपयोग करता है। app data मिटने/रीसेट पर वही guest खाता मिलता है।\n\n• वार्ड और वैकल्पिक landmark साझा किए जाते हैं। पूरा घर का पता न लिखें।\n\n• GPS नहीं लिया जाता। पिन लगभग 100m तक गोल रखे जाते हैं।\n\n• फ़ोटो से पहचान या metadata leak हो सकती है। संवेदनशील तस्वीर न साझा करें।\n\n• रिपोर्ट community moderation के लिए है; किसी अधिकारी को नहीं भेजी जाती।\n\n• Demo डेटा इसी browser/device में रहता है। रीसेट से इसे हटाया जा सकता है।\n\n• Live account deletion के लिए project operator से संपर्क करें। लॉन्च से पहले operator की contact/privacy policy जोड़ना ज़रूरी है।',
-              '• Live mode uses an anonymous guest session — no phone number or OTP. Clearing app data loses that guest account.\n\n• Your ward and optional landmark are shared. Do not write an exact home address.\n\n• GPS is not collected. Coordinates are rounded to roughly 100m.\n\n• Photos may reveal identity or metadata. Never share sensitive images.\n\n• Reports are community moderation, not official complaints.\n\n• Demo data stays on this browser/device and can be reset.\n\n• Live account deletion requires the project operator. Add operator contact details and a reviewed privacy policy before launch.',
+              '• Live mode किसी मोबाइल नंबर या OTP के बिना गेस्ट सत्र उपयोग करता है। app data मिटने/रीसेट पर वही guest खाता मिलता है।\n\n• वार्ड और वैकल्पिक landmark साझा किए जाते हैं। पूरा घर का पता न लिखें।\n\n• GPS नहीं लिया जाता। पिन लगभग 100m तक गोल रखे जाते हैं।\n\n• फ़ोटो से पहचान या metadata leak हो सकती है। संवेदनशील तस्वीर न साझा करें।\n\n• रिपोर्ट community moderation के लिए है; किसी अधिकारी को नहीं भेजी जाती।\n\n• Demo डेटा इसी browser/device में रहता है। रीसेट से इसे हटाया जा सकता है।\n\n• अपना अकाउंट व सारा डेटा कभी भी profile में बने \'अकाउंट डिलीट करें\' बटन से तुरंत हटाया जा सकता है।',
+              '• Live mode uses an anonymous guest session — no phone number or OTP. Clearing app data loses that guest account.\n\n• Your ward and optional landmark are shared. Do not write an exact home address.\n\n• GPS is not collected. Coordinates are rounded to roughly 100m.\n\n• Photos may reveal identity or metadata. Never share sensitive images.\n\n• Reports are community moderation, not official complaints.\n\n• Demo data stays on this browser/device and can be reset.\n\n• You can delete your account and all data instantly from the \'Delete account & data\' button on your profile.',
             ),
             style: const TextStyle(fontSize: 12, height: 1.7),
           ),

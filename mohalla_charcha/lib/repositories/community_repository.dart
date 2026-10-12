@@ -32,4 +32,8 @@ abstract class CommunityRepository {
   );
   Future<CommunityStats> getStats(AreaPath location);
   Future<void> signOut();
+
+  /// Self-service account deletion (Google Play policy): removes the
+  /// caller's profile, every post/comment/reaction/report and media.
+  Future<void> deleteAccount();
 }
