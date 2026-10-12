@@ -39,17 +39,19 @@ trust"). Is whistle-blower point ko listing/description me mat chhupo.
 ## Release steps (1st time)
 
 1. ✅ Root workflow FIXED — fresh `Run workflow` se universal APK banega
-   (testing ke liye). Play submission ke liye **AAB** chahiye → FINAL v2
-   workflow (main dunga) me `flutter build appbundle --release` step add
-   hoga; paste karlena utna bada nahi (web editor se).
+   aur ZIP Telegram pe aayega (TESTING ke liye). **Abhi APK kaafi hai.**
+   Play submission ke time par **AAB** banana hoga — workflow me ek
+   `flutter build appbundle --release` step add hota hai; woh file tab
+   denge, web editor se paste kar lena.
 2. **Signing**: Play App Signing ke liye ORIGINAL upload keystore zaroori hai
    (ek hi baar generate, hamesha safe rakho → `ANDROID_KEYSTORE_BASE64`,
    `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`
-   secrets already mockup hai → asli values dađo). Workflow me
-   `require_signing: true` chalao tab.
+   secrets me asli values). Workflow me `require_signing: true` chalao tab.
+   **Abhi signing nahi chahiye** — testing APK unsigned/debug-signed bhi
+   chal jayegi.
 3. Store listing assets already repo me hain: `store/listing_en-IN.json`,
    `store/listing_hi-IN.json`, `seo/`, adaptive icons `assets/branding/`.
-4. Play Console → Privacy policy URL: PRIVACY_POLICY.md ka hosted link.
+4. Play Console → Privacy policy URL: docs/PRIVACY_POLICY.md ka hosted link (operator email pehle se bhara hai — contact = nitesh.skyhigh@gmail.com).
 5. Internal testing track pe pehle daudo, firo production.
 
 ## Annoying review-milne wale sawaalaaw (aapke paas answers ready)
