@@ -271,7 +271,7 @@ class _GameScreenState extends State<GameScreen> {
           }
         }
         if (target == null) { continue; }
-        final hitTarget = target;
+        final hitTarget = target!;
         hitTarget.hp -= bullet.damage;
           hitTarget.flashFor = .1;
           projectiles.remove(bullet);
