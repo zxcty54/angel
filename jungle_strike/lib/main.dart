@@ -23,7 +23,7 @@ class GameMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     body: Stack(fit: StackFit.expand, children: [
-      Image.asset('assets/jungle_frontier.png', fit: BoxFit.cover),
+      Image.asset('assets/jungle_frontier.png', fit: BoxFit.cover, filterQuality: FilterQuality.none),
       Container(color: const Color(0xaa07131b)),
       SafeArea(
         child: Center(
@@ -317,7 +317,7 @@ class _GameScreenState extends State<GameScreen> {
       Expanded(child: GestureDetector(
         onTap: running ? null : start,
         child: Stack(fit: StackFit.expand, children: [
-          Image.asset(missionBackground(level), fit: BoxFit.cover, errorBuilder: (c, e, s) => const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xff14283a), Color(0xff385c55), Color(0xff182b30)])))),
+          Image.asset(missionBackground(level), fit: BoxFit.cover, filterQuality: FilterQuality.none, errorBuilder: (c, e, s) => const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xff14283a), Color(0xff385c55), Color(0xff182b30)])))),
           CustomPaint(size: Size.infinite, painter: JunglePainter(x: x, jump: jump, scroll: scroll, shooting: firing, level: level, weapon: weapon, prone: prone, dodging: dodging, enemies: enemies, projectiles: projectiles, frame: frame)),
           if (emote.isNotEmpty && running) Positioned(left: MediaQuery.sizeOf(context).width * x, top: 30, child: Text(emote, style: const TextStyle(fontSize: 40))),
           if (!running) Center(child: Container(
