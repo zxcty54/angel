@@ -271,7 +271,7 @@ class _GameScreenState extends State<GameScreen> {
           }
         }
         if (target == null) { continue; }
-        final hitTarget = target!;
+        final hitTarget = target;
         hitTarget.hp -= bullet.damage;
           hitTarget.flashFor = .1;
           projectiles.remove(bullet);
@@ -699,7 +699,7 @@ class JunglePainter extends CustomPainter {
         c.drawRect(Rect.fromLTWH(center.dx + 3, center.dy + 1, 5, 13), Paint()..color = const Color(0xff394551));
       }
       if (enemy.flashFor > 0) {
-        c.drawCircle(center, enemy.boss ? 42 : 24, Paint()..color = Colors.white.withOpacity((enemy.flashFor/.1).clamp(0,1)*.85)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
+        c.drawCircle(center, enemy.boss ? 42 : 24, Paint()..color = Colors.white.withValues(alpha: (enemy.flashFor/.1).clamp(0.0,1.0).toDouble()*.85)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
       }
       if (enemy.hp > 1) {
         c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx - 20, center.dy - (enemy.boss ? 38 : 39), 40, 4), const Radius.circular(2)), Paint()..color = Colors.white24);
