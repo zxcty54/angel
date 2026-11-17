@@ -13,6 +13,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('FIRE'), findsOneWidget);
     expect(find.byIcon(Icons.control_camera), findsOneWidget);
+    expect(find.byIcon(Icons.gps_fixed), findsOneWidget);
     expect(find.textContaining('ARMOR'), findsOneWidget);
     expect(find.textContaining('Tap to deploy'), findsOneWidget);
   });

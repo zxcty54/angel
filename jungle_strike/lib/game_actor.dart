@@ -1,8 +1,8 @@
 class GameEnemy {
-  GameEnemy({required this.x, required this.y, required this.speed, required this.hp, this.boss = false, this.fireIn = 1.2});
+  GameEnemy({required this.x, required this.y, required this.speed, required this.hp, this.boss = false, this.explosive = false, this.fireIn = 1.2});
   double x, y, speed, fireIn;
   int hp;
-  final bool boss;
+  final bool boss, explosive;
 }
 
 class GameProjectile {

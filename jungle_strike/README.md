@@ -1,6 +1,6 @@
 # Jungle Strike
 
-An independent Flutter Android action-game app (not part of Mohalla Charcha). The single-player campaign runs offline and has no Supabase, account, or backend dependency. It includes a story intro, six mission checkpoints, distinct stage artwork, a final Iron Vulture boss encounter, player and enemy projectiles, enemy waves, collisions, a continuous virtual joystick, a muscular face-visible fighter with a two-handed rifle, weapon switching, armor, and score.
+An independent Flutter Android action-game app (not part of Mohalla Charcha). The single-player campaign runs offline and has no Supabase, account, or backend dependency. It includes a story intro, six mission checkpoints, distinct stage artwork, a final Iron Vulture boss encounter, player and enemy projectiles, enemy waves, collisions, twin-stick movement/manual aim with nearest-enemy auto-lock, background drones that dive into the lane, a muscular pixel-art fighter with a rifle, boss fan-volley patterns, explosive barrels, camera shake/hit-stop, and three-choice mission upgrades.
 
 ## Play locally
 
