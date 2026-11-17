@@ -32,9 +32,9 @@ func _ready() -> void:
 	player.position = Vector3(0, 0.05, 5)
 	add_child(player)
 	player.health_changed.connect(_on_health_changed)
-	_on_health_changed(player.health, player.max_health)
 	player.set_physics_process(false)
 	_build_hud()
+	_on_health_changed(player.health, player.max_health)
 	_update_hud()
 
 func _build_input_map() -> void:
@@ -124,8 +124,8 @@ func _show_intro() -> void:
 	title.add_theme_font_size_override("font_size", 28)
 	box.add_child(title)
 	story_label = Label.new()
-story_label.text = "A 50-floor autonomous research tower has sealed itself. Security drones and armored guards are hunting everyone inside. You are an ex-agent in an experimental Kinetic Suit. Fight upward, follow Dr. Mira Sen’s radio calls, and uncover who ordered the blackout. Your floor checkpoint saves locally."
-story_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	story_label.text = "A 50-floor autonomous research tower has sealed itself. Security drones and armored guards are hunting everyone inside. You are an ex-agent in an experimental Kinetic Suit. Fight upward, follow Dr. Mira Sen’s radio calls, and uncover who ordered the blackout. Your floor checkpoint saves locally."
+	story_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	story_label.custom_minimum_size.x = minf(430.0, get_viewport().get_visible_rect().size.x - 70.0)
 	box.add_child(story_label)
 	var mission_label := Label.new()
