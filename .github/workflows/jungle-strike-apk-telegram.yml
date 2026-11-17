@@ -59,6 +59,7 @@ jobs:
           relative_project_path: jungle_strike/godot
           use_preset_export_path: true
           presets_to_export: Android
+          export_debug: true
           cache: true
           verbose: true
         continue-on-error: true
@@ -73,7 +74,7 @@ jobs:
           "$GODOT" --headless --path jungle_strike/godot --editor --quit --verbose 2>&1 | tee /tmp/godot-import.log
           "$GODOT" --headless --path jungle_strike/godot --export-debug Android /tmp/Jungle-Strike-debug.apk --verbose 2>&1 | tee /tmp/godot-export.log
           grep -E 'ERROR:|Parse Error|Error:|error:|Invalid' /tmp/godot-import.log | head -n 12 | while IFS= read -r line; do echo "::error title=Godot parse diagnostic::$line"; done
-          sed -n '/Cannot export project/,+16p' /tmp/godot-export.log | head -n 18 | while IFS= read -r line; do echo "::error title=Godot export detail::$line"; done
+          sed -n '/Cannot export project/,$p' /tmp/godot-export.log | head -n 40 | while IFS= read -r line; do echo "::error title=Godot export detail::$line"; done
           exit 1
 
       - name: Package APK as Telegram ZIP
