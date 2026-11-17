@@ -182,8 +182,13 @@ class _GameScreenState extends State<GameScreen> {
           final distance = dx * dx + dy * dy;
           if (distance < nearestDistance) { nearest = enemy; nearestDistance = distance; }
         }
-        final lockedTarget = nearest;
-        shotDirection = lockedTarget == null ? const Offset(1, 0) : Offset(lockedTarget.x - x, lockedTarget.y - playerY);
+        final targetX = nearest?.x;
+        final targetY = nearest?.y;
+        if (targetX == null || targetY == null) {
+          shotDirection = const Offset(1, 0);
+        } else {
+          shotDirection = Offset(targetX - x, targetY - playerY);
+        }
       }
       final aimLength = math.max(.001, shotDirection.distance);
       shotDirection = shotDirection / aimLength;
