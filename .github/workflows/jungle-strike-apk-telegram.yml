@@ -61,12 +61,26 @@ jobs:
           presets_to_export: Android
           cache: true
           verbose: true
+        continue-on-error: true
+
+      - name: Report detailed Godot export diagnostics
+        if: steps.godot-export.outcome == 'failure'
+        shell: bash
+        run: |
+          set +e
+          GODOT="$(find "$HOME/.local/share/godot/godot_executable" -type f -name 'Godot*' -print -quit)"
+          if [[ -z "$GODOT" ]]; then echo "::error::Godot executable was not installed"; exit 1; fi
+          "$GODOT" --headless --path jungle_strike/godot --editor --quit --verbose 2>&1 | tee /tmp/godot-import.log
+          "$GODOT" --headless --path jungle_strike/godot --export-debug Android /tmp/Jungle-Strike-debug.apk --verbose 2>&1 | tee /tmp/godot-export.log
+          grep -E 'ERROR:|Parse Error|Error:|error:|Invalid' /tmp/godot-import.log /tmp/godot-export.log | head -n 20 | while IFS= read -r line; do echo "::error title=Godot diagnostic::$line"; done
+          exit 1
 
       - name: Package APK as Telegram ZIP
+        if: steps.godot-export.outcome == 'success'
         run: python3 jungle_strike/scripts/package_apk.py --apk jungle_strike/godot/build/Jungle-Strike.apk --output jungle_strike/godot/build/Jungle-Strike-${GITHUB_RUN_NUMBER}.zip --version "$GITHUB_RUN_NUMBER"
 
       - name: Send APK ZIP to Telegram
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        if: steps.godot-export.outcome == 'success' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         run: python3 jungle_strike/scripts/send_telegram.py --file jungle_strike/godot/build/Jungle-Strike-${GITHUB_RUN_NUMBER}.zip
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
