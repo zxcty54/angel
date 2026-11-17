@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'game_actor.dart';
+import 'fighter_painter.dart';
 
 void main() => runApp(const JungleStrikeApp());
 
@@ -155,10 +156,10 @@ class _GameScreenState extends State<GameScreen> {
       if (firing && fireCooldown <= 0) {
         final damage = weapon == 'ROCKET' ? 4 : 1;
         final speed = weapon == 'ROCKET' ? 1.05 : 1.65;
-        projectiles.add(GameProjectile(x: x + .035, y: playerY, vx: speed, vy: 0, damage: damage, fromEnemy: false));
+        projectiles.add(GameProjectile(x: x + .20, y: playerY, vx: speed, vy: 0, damage: damage, fromEnemy: false));
         if (weapon == 'SPREAD') {
-          projectiles.add(GameProjectile(x: x + .035, y: playerY, vx: 1.35, vy: -.30, damage: 1, fromEnemy: false));
-          projectiles.add(GameProjectile(x: x + .035, y: playerY, vx: 1.35, vy: .30, damage: 1, fromEnemy: false));
+          projectiles.add(GameProjectile(x: x + .20, y: playerY, vx: 1.35, vy: -.30, damage: 1, fromEnemy: false));
+          projectiles.add(GameProjectile(x: x + .20, y: playerY, vx: 1.35, vy: .30, damage: 1, fromEnemy: false));
         }
         fireCooldown = weapon == 'ROCKET' ? .55 : weapon == 'SPREAD' ? .30 : .16;
       }
@@ -475,20 +476,21 @@ class JunglePainter extends CustomPainter {
     }
     c.drawRect(Rect.fromLTWH(0,ground,s.width,s.height-ground),Paint()..shader=const LinearGradient(colors:[Color(0xff344737),Color(0xff14221e)]).createShader(Rect.fromLTWH(0,ground,s.width,s.height-ground)));
     for(int i=0;i<18;i++){final xx=((i*67.0-scroll*340)%(s.width+60))-25;final yy=ground+10+(i%4)*13;c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(xx,yy,25+(i%3)*12,3),const Radius.circular(3)),Paint()..color=const Color(0xff83936b));}
-    final px=s.width*x, py=ground-30-jump*65;
-    final heroGlow=Paint()..color=(dodging?const Color(0xff65e8d0):const Color(0x88a5f3d0))..maskFilter=MaskFilter.blur(BlurStyle.normal,dodging?18:8);
-    c.drawOval(Rect.fromCenter(center:Offset(px,ground+3),width:dodging?64:46,height:9),heroGlow);
-    if(prone){
-      c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(px-20,ground-25,34,12),const Radius.circular(6)),Paint()..color=const Color(0xff36b8aa));
-      c.drawCircle(Offset(px+17,ground-20),7,Paint()..color=const Color(0xffdf795c));
-      c.drawRect(Rect.fromLTWH(px+2,ground-17,29,4),Paint()..color=const Color(0xffd8e6df));
-    }else{
-      c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(px-12,py-37,22,15),const Radius.circular(5)),Paint()..color=const Color(0xffdf795c));
-      c.drawRect(Rect.fromLTWH(px+4,py-32,2,3),Paint()..color=Colors.white);
-      c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(px-11,py-23,22,22),const Radius.circular(5)),Paint()..color=const Color(0xff36b8aa));
-      c.drawRect(Rect.fromLTWH(px-9,py-4,7,15),Paint()..color=const Color(0xffffc857)); c.drawRect(Rect.fromLTWH(px+2,py-4,7,15),Paint()..color=const Color(0xffffc857));
-      c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(px+6,py-20,28,6),const Radius.circular(3)),Paint()..color=const Color(0xffd8e6df));
-    }
+    final px = s.width * x;
+    final footY = ground - jump * 65;
+    final unit = (s.shortestSide / 360).clamp(.85, 1.3).toDouble();
+    final py = footY - 55 * unit;
+    paintFighter(
+      c,
+      x: px,
+      footY: footY,
+      scale: unit,
+      frame: frame,
+      prone: prone,
+      dodging: dodging,
+      firing: shooting,
+      weapon: weapon,
+    );
 
     for (final enemy in enemies) {
       final center = Offset(s.width * enemy.x, s.height * enemy.y);
@@ -524,7 +526,7 @@ class JunglePainter extends CustomPainter {
       c.drawCircle(pos, bullet.fromEnemy ? 2.5 : 2, Paint()..color = Colors.white);
     }
     if (shooting) {
-      c.drawCircle(Offset(px + 32, prone ? ground - 20 : py - 17), weapon == 'ROCKET' ? 8 : 4, Paint()..color = weapon == 'ROCKET' ? const Color(0xffffa451) : const Color(0xfffff0ae));
+      c.drawCircle(Offset(px + (prone ? 70 : 78) * unit, prone ? footY - 37 * unit : py), weapon == 'ROCKET' ? 8 : 4, Paint()..color = weapon == 'ROCKET' ? const Color(0xffffa451) : const Color(0xfffff0ae));
     }
     for(int i=0;i<16;i++){final xx=(i*53.0-scroll*130)%(s.width+20);final yy=s.height*(.2+(i%5)*.1);c.drawCircle(Offset(xx,yy),1.2+(i%2),Paint()..color=const Color(0x88c5ffd4));}
   }
