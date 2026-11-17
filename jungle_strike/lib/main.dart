@@ -270,9 +270,9 @@ class _GameScreenState extends State<GameScreen> {
             break;
           }
         }
+        if (target == null) { continue; }
         final hitTarget = target;
-        if (hitTarget != null) {
-          hitTarget.hp -= bullet.damage;
+        hitTarget.hp -= bullet.damage;
           hitTarget.flashFor = .1;
           projectiles.remove(bullet);
           if (hitTarget.boss) bossHp = hitTarget.hp;
@@ -317,7 +317,6 @@ class _GameScreenState extends State<GameScreen> {
               }
             }
           }
-        }
       }
 
       for (final bullet in projectiles.where((b) => b.fromEnemy).toList()) {
