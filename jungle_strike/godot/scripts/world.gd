@@ -2,15 +2,22 @@ extends Node3D
 
 const PLAYER_SCENE := preload("res://scenes/player.tscn")
 const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
+const FLOOR_COUNT := 50
 const GROUND_SIZE := 180.0
-const MISSIONS := ["The Evacuation", "Broken Bridge", "Relay Tower", "Ashen Village", "Storm Pass", "Iron Vulture"]
+const FLOOR_NAMES := ["SECURITY INTAKE", "POWER CORE", "RESEARCH WING", "CONTAINMENT", "ARCHIVE VAULT", "DRONE FOUNDRY", "EXECUTIVE LEVEL", "NEURAL LAB", "REACTOR RING", "BLACKOUT TOWER"]
+const RADIO_GUIDANCE := ["Stay low. The drones are tracking heat signatures.", "I am Dr. Mira Sen. Follow the emergency strobes to the next lift.", "The security team is not responding to my override.", "I found your Kinetic Suit file. You were here before, weren't you?", "That is not a maintenance signal. Something is answering us."]
+const STORY_TWISTS := ["I did not trigger the lockdown. Someone used my credentials.", "The AI was ordered to protect the research—not the people.", "The guards were told the facility had already been evacuated.", "Your suit was the first neural interface we tested. The memory gaps are deliberate.", "The tower is learning from every fight. It is adapting to you.", "I found a second command signature. It matches your old field ID.", "The blackout was staged to hide the transfer of a living subject.", "The AI is not killing at random. It is removing everyone who knows the truth.", "The person who signed the kill order is still inside the tower.", "That signature is mine. I created the AI—and gave it a conscience.", "The subject in the core is not a weapon. It is my daughter.", "You were sent to erase the evidence. Your handler never planned an extraction.", "The guards are clones grown from the original security team.", "The blackout is also keeping something below us contained.", "The AI has been using the tower's power to keep the city grid alive.", "The command logs show your old unit reached the core before you did.", "I have been guiding you from a dead channel. I am not in the control room.", "The voice you hear is a recording. I died on the night of the lockdown.", "The tower has been rebuilding itself around your route.", "Your suit is the only key that can shut the core down.", "If you kill the AI, the city loses power. There is another way.", "The subject is awake. She has been speaking through the security network.", "Your memories were copied into the tower during the first experiment.", "I am not Mira. I am the part of her that the AI could not delete.", "At the top, choose: destroy the core, or trust the voice inside it."]
+const FLOOR_COUNT_PER_CHAPTER := 5
 
 var player: JunglePlayer
 var mission := 1
 var kills := 0
 var unlocked := 1
 var story_label: Label
+var radio_label: Label
 var hud_label: Label
+var floor_kills := 0
+var radio_generation := 0
 var health_label: Label
 var overlay: PanelContainer
 var active := false
@@ -20,9 +27,7 @@ var save_path := "user://jungle_campaign.cfg"
 func _ready() -> void:
 	_build_input_map()
 	_load_progress()
-	_build_landscape()
-	_build_cover()
-	_build_vegetation_and_field_props()
+	_build_tower_interior()
 	player = PLAYER_SCENE.instantiate()
 	player.position = Vector3(0, 0.05, 5)
 	add_child(player)
@@ -53,7 +58,7 @@ func _add_key(action: String, key: int) -> void:
 func _load_progress() -> void:
 	var data := ConfigFile.new()
 	if data.load(save_path) == OK:
-		unlocked = clampi(int(data.get_value("campaign", "unlocked", 1)), 1, MISSIONS.size())
+		unlocked = clampi(int(data.get_value("campaign", "unlocked", 1)), 1, FLOOR_COUNT)
 		mission = unlocked
 
 func _save_progress() -> void:
@@ -80,6 +85,13 @@ func _build_hud() -> void:
 	health_label.add_theme_font_size_override("font_size", 20)
 	health_label.add_theme_color_override("font_color", Color(0.62,1.0,0.71))
 	root.add_child(health_label)
+	radio_label = Label.new()
+	radio_label.position = Vector2(24, 92)
+	radio_label.custom_minimum_size = Vector2(minf(640.0, get_viewport().get_visible_rect().size.x * 0.62), 64)
+	radio_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	radio_label.add_theme_font_size_override("font_size", 18)
+	radio_label.add_theme_color_override("font_color", Color(0.68, 0.88, 1.0))
+	root.add_child(radio_label)
 	_add_reticle(root)
 	var weapon_label := Label.new()
 	weapon_label.text = "RANGER  ·  ASSAULT RIFLE     [F] FIRE  ·  [SPACE] VAULT"
@@ -107,17 +119,17 @@ func _show_intro() -> void:
 	_clear_overlay()
 	var box := _overlay_column()
 	var title := Label.new()
-	title.text = "JUNGLE STRIKE · OPERATION FRONTIER"
+	title.text = "THE BLACKOUT TOWER"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 19)
+	title.add_theme_font_size_override("font_size", 28)
 	box.add_child(title)
 	story_label = Label.new()
-	story_label.text = "An Iron Vulture militia has seized the frontier. Lead the evacuation, disable its relay network, and stop the commander. Your campaign and checkpoints stay on this device."
-	story_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+story_label.text = "A 50-floor autonomous research tower has sealed itself. Security drones and armored guards are hunting everyone inside. You are an ex-agent in an experimental Kinetic Suit. Fight upward, follow Dr. Mira Sen’s radio calls, and uncover who ordered the blackout. Your floor checkpoint saves locally."
+story_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	story_label.custom_minimum_size.x = minf(430.0, get_viewport().get_visible_rect().size.x - 70.0)
 	box.add_child(story_label)
 	var mission_label := Label.new()
-	mission_label.text = "CONTINUE · MISSION %d: %s" % [mission, MISSIONS[mission - 1]]
+	mission_label.text = "CONTINUE · FLOOR %02d / %02d · %s" % [mission, FLOOR_COUNT, _floor_name(mission)]
 	mission_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(mission_label)
 	var start := Button.new()
@@ -132,11 +144,21 @@ func _start_campaign() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	player.set_physics_process(true)
 	overlay.visible = false
-	if mission == MISSIONS.size():
-		_spawn_guards(2)
-	else:
-		_spawn_guards(4)
+	_begin_floor()
+
+func _begin_floor() -> void:
+	active = true
+	floor_kills = 0
+	boss_active = false
+	player.restore_checkpoint()
+	var chapter := int((mission - 1) / FLOOR_COUNT_PER_CHAPTER)
+	var spawn_count := 2 + mini(chapter, 3)
+	if mission % 10 == 0:
+		spawn_count = 2 + mini(chapter, 3)
+	_spawn_guards(spawn_count)
 	_update_hud()
+	var guidance := RADIO_GUIDANCE[(mission - 1) % RADIO_GUIDANCE.size()]
+	_radio_transmission("DR. MIRA", "Floor %02d: %s" % [mission, guidance])
 
 func _spawn_guards(count: int) -> void:
 	for i in range(count):
@@ -151,33 +173,86 @@ func _spawn_boss() -> void:
 	boss_active = true
 	player.set_boss_camera(true)
 	var enemy = ENEMY_SCENE.instantiate()
-	enemy.position = Vector3(0, 0.05, -24)
+	enemy.position = Vector3(0, 0.05, -22)
 	add_child(enemy)
 	enemy.setup(player, true)
 	enemy.defeated.connect(_on_boss_defeated)
 	_update_hud()
+	_radio_transmission("TOWER AI · HELIX", "Containment response active. Kinetic subject will be terminated.")
 
 func _on_enemy_defeated() -> void:
 	kills += 1
-	if mission == MISSIONS.size():
-		if kills >= 2 and not boss_active:
-			_spawn_boss()
-	else:
-		if kills >= 4:
-			mission += 1
-			unlocked = maxi(unlocked, mission)
-			_save_progress()
-			active = false
-			player.set_physics_process(false)
-			_show_upgrade()
+	floor_kills += 1
+	var required_kills := 2 + mini(int((mission - 1) / FLOOR_COUNT_PER_CHAPTER), 3)
+	if floor_kills >= required_kills and mission % 10 == 0 and not boss_active:
+		_spawn_boss()
+	elif floor_kills >= required_kills and mission % 10 != 0:
+		_complete_floor()
 	_update_hud()
 
-func _on_boss_defeated() -> void:
+func _complete_floor() -> void:
 	active = false
 	player.set_physics_process(false)
-	unlocked = MISSIONS.size()
+	unlocked = mini(FLOOR_COUNT + 1, mission + 1)
 	_save_progress()
-	_show_victory()
+	if mission % 2 == 0:
+		var twist_index := int(mission / 2) - 1
+		_radio_transmission("DR. MIRA · ENCRYPTED", STORY_TWISTS[twist_index])
+	if mission >= FLOOR_COUNT:
+		_show_victory()
+	else:
+		mission += 1
+		_save_progress()
+		if mission % 5 == 0:
+			_show_upgrade()
+		else:
+			_show_floor_clear()
+
+func _on_boss_defeated() -> void:
+	player.set_boss_camera(false)
+	_complete_floor()
+
+func _show_floor_clear() -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	overlay.visible = true
+	_clear_overlay()
+	var box := _overlay_column()
+	var title := Label.new()
+	title.text = "FLOOR %02d SECURED" % (mission - 1)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 24)
+	box.add_child(title)
+	var body := Label.new()
+	body.text = "Lift power restored. Dr. Mira is waiting on the next floor."
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(body)
+	var next_button := Button.new()
+	next_button.text = "ASCEND TO FLOOR %02d" % mission
+	next_button.custom_minimum_size.y = 50
+	next_button.pressed.connect(func():
+		overlay.visible = false
+		if not OS.has_feature("mobile"):
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		_begin_floor()
+	)
+	box.add_child(next_button)
+
+func _radio_transmission(speaker: String, message: String) -> void:
+	if not is_instance_valid(radio_label):
+		return
+	radio_generation += 1
+	var generation := radio_generation
+	radio_label.text = "◉  %s  /  %s" % [speaker, message]
+	radio_label.visible = true
+	var timer := get_tree().create_timer(6.5)
+	timer.timeout.connect(func():
+		if is_instance_valid(radio_label) and generation == radio_generation:
+			radio_label.text = ""
+	)
+
+func _floor_name(floor_number: int) -> String:
+	var chapter := mini(int((floor_number - 1) / FLOOR_COUNT_PER_CHAPTER), FLOOR_NAMES.size() - 1)
+	return FLOOR_NAMES[chapter]
 
 func _show_upgrade() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -200,11 +275,10 @@ func _add_upgrade(parent: VBoxContainer, title: String, effect: String) -> void:
 	button.pressed.connect(func():
 		player.apply_upgrade(effect)
 		kills = 0
-		active = true
-		player.set_physics_process(true)
 		overlay.visible = false
-		_spawn_guards(4)
-		_update_hud()
+		if not OS.has_feature("mobile"):
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		_begin_floor()
 	)
 	parent.add_child(button)
 
@@ -231,10 +305,8 @@ func _show_retry() -> void:
 			enemy.queue_free()
 		kills = 0
 		boss_active = false
-		player.restore_checkpoint()
-		active = true
 		overlay.visible = false
-		_spawn_guards(2 if mission == MISSIONS.size() else 4)
+		_begin_floor()
 	)
 	box.add_child(retry)
 
@@ -244,18 +316,23 @@ func _show_victory() -> void:
 	_clear_overlay()
 	var box := _overlay_column()
 	var title := Label.new()
-	title.text = "IRON VULTURE DEFEATED"
+	title.text = "THE BLACKOUT TOWER · CORE REACHED"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 28)
 	box.add_child(title)
 	var body := Label.new()
-	body.text = "The frontier is free. Your campaign completion is saved locally."
+	body.text = "HELIX is offline. The 50-floor campaign and your ending are saved on this device."
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(body)
 
 func _update_hud() -> void:
 	if is_instance_valid(hud_label):
-		hud_label.text = "MISSION %d / %d   ·   %s   ·   HOSTILES %d" % [mission, MISSIONS.size(), MISSIONS[mission - 1], 2 if mission == MISSIONS.size() else 4]
+		var objective := "ELIMINATE THE SECURITY DETAIL"
+		if mission % 10 == 0:
+			objective = "CONTAINMENT UNIT · FLOOR BOSS"
+		hud_label.text = "BLACKOUT TOWER  ·  FLOOR %02d / %02d  ·  %s" % [mission, FLOOR_COUNT, _floor_name(mission)]
+		if active:
+			hud_label.text += "\nOBJECTIVE  %s" % objective
 
 func _clear_overlay() -> void:
 	for child in overlay.get_children():
@@ -320,6 +397,62 @@ func _build_vegetation_and_field_props() -> void:
 		rock.position = Vector3(rng.randf_range(-48, 48), rock_mesh.height * 0.32, rng.randf_range(-44, 34))
 		rock.scale = Vector3(rng.randf_range(0.8, 1.45), 1.0, rng.randf_range(0.8, 1.4))
 		add_child(rock)
+
+func _build_tower_interior() -> void:
+	var concrete := _facility_material(Color(0.13, 0.17, 0.21), 0.88)
+	var dark_metal := _facility_material(Color(0.055, 0.075, 0.095), 0.62)
+	var panel_metal := _facility_material(Color(0.22, 0.27, 0.29), 0.72)
+	var cyan_light := _facility_material(Color(0.06, 0.66, 0.82), 0.32, Color(0.03, 0.42, 0.78))
+	var warning_light := _facility_material(Color(0.8, 0.18, 0.08), 0.38, Color(0.7, 0.035, 0.01))
+	_add_facility_box("FloorSlab", Vector3(0, -0.38, 0), Vector3(54, 0.76, 54), concrete, true)
+	_add_facility_box("CeilingRim", Vector3(0, 7.2, -1), Vector3(54, 0.45, 52), dark_metal, false)
+	_add_facility_box("NorthWall", Vector3(0, 3.4, -26), Vector3(54, 7.2, 0.8), dark_metal, true)
+	_add_facility_box("SouthWall", Vector3(0, 3.4, 26), Vector3(54, 7.2, 0.8), dark_metal, true)
+	_add_facility_box("EastWall", Vector3(26, 3.4, 0), Vector3(0.8, 7.2, 52), dark_metal, true)
+	_add_facility_box("WestWall", Vector3(-26, 3.4, 0), Vector3(0.8, 7.2, 52), dark_metal, true)
+	for x in [-24.0, -18.0, -12.0, -6.0, 0.0, 6.0, 12.0, 18.0, 24.0]:
+		_add_facility_box("CeilingLight", Vector3(x, 6.94, 0), Vector3(0.12, 0.05, 22), cyan_light, false)
+	for x in [-22.0, 22.0]:
+		for z in [-19.0, -7.0, 7.0, 19.0]:
+			_add_facility_box("SupportColumn", Vector3(x, 2.0, z), Vector3(1.6, 4.7, 1.6), panel_metal, true)
+			_add_facility_box("ColumnLight", Vector3(x, 3.2, z - 0.82), Vector3(0.10, 1.3, 0.035), warning_light, false)
+	for z in [-23.0, -16.0, 16.0, 23.0]:
+		_add_facility_box("WallPanel", Vector3(0, 3.8, z), Vector3(8.0, 2.0, 0.16), panel_metal, false)
+		_add_facility_box("AccessStrip", Vector3(0, 4.95, z - 0.12), Vector3(2.0, 0.06, 0.08), warning_light, false)
+	# Modular lab consoles and heavy cover make the combat space read like a real facility.
+	for pos in [Vector3(-10, 0.75, -8), Vector3(10, 0.75, -8), Vector3(-10, 0.75, 8), Vector3(10, 0.75, 8)]:
+		_add_facility_box("LabConsole", pos, Vector3(3.2, 1.5, 1.0), dark_metal, true)
+		_add_facility_box("ConsoleDisplay", pos + Vector3(0, 0.32, -0.53), Vector3(1.7, 0.38, 0.055), cyan_light, false)
+	_add_facility_box("LiftDoor", Vector3(0, 2.2, -25.35), Vector3(6.0, 4.4, 0.12), panel_metal, false)
+	_add_facility_box("LiftSignal", Vector3(0, 4.6, -25.15), Vector3(1.4, 0.12, 0.08), warning_light, false)
+
+func _facility_material(color: Color, roughness: float, emission: Color = Color.BLACK) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = roughness
+	if emission != Color.BLACK:
+		material.emission_enabled = true
+		material.emission = emission
+		material.emission_energy_multiplier = 2.2
+	return material
+
+func _add_facility_box(node_name: String, at: Vector3, dimensions: Vector3, material: Material, collidable: bool) -> void:
+	var root: Node3D = StaticBody3D.new() if collidable else Node3D.new()
+	root.name = node_name
+	root.position = at
+	var mesh_instance := MeshInstance3D.new()
+	var box_mesh := BoxMesh.new()
+	box_mesh.size = dimensions
+	mesh_instance.mesh = box_mesh
+	mesh_instance.material_override = material
+	root.add_child(mesh_instance)
+	if collidable:
+		var collision := CollisionShape3D.new()
+		var box_shape := BoxShape3D.new()
+		box_shape.size = dimensions
+		collision.shape = box_shape
+		root.add_child(collision)
+	add_child(root)
 
 func _build_landscape() -> void:
 	var ground := StaticBody3D.new()

@@ -1,16 +1,12 @@
-# Jungle Strike 3D (Godot migration prototype)
+# The Blackout Tower (Godot 4)
 
-This is the start of a Godot 4 third-person, offline campaign version. It is a playable 3D greybox foundation, not finished BGMI-level art or a production Android build yet.
+An offline, single-player third-person action campaign. Ex-agent and experimental Kinetic Suit operator fights upward through 50 floors of an autonomous research tower after the Helix AI seals the facility. Dr. Mira Sen sends short radio guidance; encrypted revelations arrive every second floor. The story centers on the lockdown, the protagonist's missing memories, and what Helix is protecting.
 
-## Current prototype
+## Play loop
 
-- Godot 4 project using the mobile-friendly Compatibility renderer.
-- Third-person CharacterBody3D movement, jump, orbit camera and hitscan firing.
-- Procedurally assembled jungle cover, simple ridgelines, atmospheric sky and muzzle flash light.
-- Desktop test controls: WASD move, mouse look, left click or F fire, Space jump.
+- Clear security details on each modular tower floor; every tenth floor ends in a heavy-unit boss encounter.
+- Pick a suit upgrade at chapter breaks, retry from the current floor after death, and save unlocked progress locally.
+- Desktop: WASD move, mouse aim, left-click or F fire, Space jump. Mobile builds include the on-screen movement and combat controls.
+- Built from procedural facility geometry and simple character meshes. This is a polished gameplay prototype, not BGMI/COD-grade authored art; production character, weapon and animation assets, sound, accessibility work, device QA and performance profiling are still future work.
 
-## Migration plan
-
-Keep the existing Flutter build intact until this Godot project can export, install and run on Android. Then migrate the campaign, touch controls, save/checkpoint system, missions, weapon progression and Telegram APK ZIP delivery; only then retire Flutter. Reaching BGMI-like visual quality also requires authored/licensed 3D character, weapon, animation, terrain and effects assets, plus device profiling and optimization. This greybox is intentionally not presented as that final quality level.
-
-Open `project.godot` with Godot 4.4 or newer. Godot is not installed in the current sandbox, so this project has not yet been engine-validated or exported as an APK.
+Open `project.godot` with Godot 4.4 or newer. The GitHub workflow exports the Android APK, packages it as a ZIP, and delivers the ZIP to the configured Telegram destination; it does not publish an APK artifact on GitHub.
