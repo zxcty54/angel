@@ -22,6 +22,7 @@ func _ready() -> void:
 	_load_progress()
 	_build_landscape()
 	_build_cover()
+	_build_vegetation_and_field_props()
 	player = PLAYER_SCENE.instantiate()
 	player.position = Vector3(0, 0.05, 5)
 	add_child(player)
@@ -79,6 +80,14 @@ func _build_hud() -> void:
 	health_label.add_theme_font_size_override("font_size", 20)
 	health_label.add_theme_color_override("font_color", Color(0.62,1.0,0.71))
 	root.add_child(health_label)
+	_add_reticle(root)
+	var weapon_label := Label.new()
+	weapon_label.text = "RANGER  ·  ASSAULT RIFLE     [F] FIRE  ·  [SPACE] VAULT"
+	weapon_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	weapon_label.position = Vector2(-430, -48)
+	weapon_label.add_theme_font_size_override("font_size", 16)
+	weapon_label.add_theme_color_override("font_color", Color(0.88, 0.91, 0.82, 0.95))
+	root.add_child(weapon_label)
 
 	overlay = PanelContainer.new()
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
@@ -258,6 +267,59 @@ func _overlay_column() -> VBoxContainer:
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	overlay.add_child(box)
 	return box
+
+func _add_reticle(root: Control) -> void:
+	var reticle := Control.new()
+	reticle.name = "AimReticle"
+	reticle.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	reticle.position = Vector2(-13, -13)
+	reticle.custom_minimum_size = Vector2(26, 26)
+	for spec in [Vector4(12, 0, 2, 8), Vector4(12, 18, 2, 8), Vector4(0, 12, 8, 2), Vector4(18, 12, 8, 2)]:
+		var tick := ColorRect.new()
+		tick.position = Vector2(spec.x, spec.y)
+		tick.size = Vector2(spec.z, spec.w)
+		tick.color = Color(0.86, 0.94, 0.78, 0.9)
+		reticle.add_child(tick)
+	root.add_child(reticle)
+
+func _build_vegetation_and_field_props() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 849223
+	var leaf_material := StandardMaterial3D.new()
+	leaf_material.albedo_color = Color(0.20, 0.34, 0.20)
+	leaf_material.roughness = 0.94
+	var stone_material := StandardMaterial3D.new()
+	stone_material.albedo_color = Color(0.31, 0.34, 0.30)
+	stone_material.roughness = 1.0
+	for i in range(52):
+		var x := rng.randf_range(-48, 48)
+		var z := rng.randf_range(-46, 38)
+		if absf(x) < 7.0 and z > -8.0 and z < 18.0:
+			continue
+		var shrub := Node3D.new()
+		shrub.position = Vector3(x, 0, z)
+		shrub.rotation.y = rng.randf_range(0, TAU)
+		var cluster_count := rng.randi_range(2, 4)
+		for j in range(cluster_count):
+			var leaf := MeshInstance3D.new()
+			var sphere := SphereMesh.new()
+			sphere.radius = rng.randf_range(0.42, 0.72)
+			sphere.height = sphere.radius * 1.55
+			leaf.mesh = sphere
+			leaf.material_override = leaf_material
+			leaf.position = Vector3(rng.randf_range(-0.45, 0.45), sphere.radius * 0.48, rng.randf_range(-0.4, 0.4))
+			shrub.add_child(leaf)
+		add_child(shrub)
+	for i in range(30):
+		var rock := MeshInstance3D.new()
+		var rock_mesh := SphereMesh.new()
+		rock_mesh.radius = rng.randf_range(0.35, 0.95)
+		rock_mesh.height = rock_mesh.radius * rng.randf_range(0.55, 1.2)
+		rock.mesh = rock_mesh
+		rock.material_override = stone_material
+		rock.position = Vector3(rng.randf_range(-48, 48), rock_mesh.height * 0.32, rng.randf_range(-44, 34))
+		rock.scale = Vector3(rng.randf_range(0.8, 1.45), 1.0, rng.randf_range(0.8, 1.4))
+		add_child(rock)
 
 func _build_landscape() -> void:
 	var ground := StaticBody3D.new()
