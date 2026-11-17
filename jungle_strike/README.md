@@ -17,7 +17,7 @@ Controls: left/right to move, up to jump, run button to dodge (cooldown), DOWN t
 
 ## Build and send the APK to Telegram
 
-The workflow is `../.github/workflows/jungle-strike-apk-telegram.yml` from this app folder. It runs on manual dispatch or when a tag matching `jungle-v*` is pushed. It generates Android platform files, runs formatting/analyzer/tests, builds a release APK, and sends it directly to Telegram (it does not publish the APK as a public GitHub artifact).
+The workflow is `../.github/workflows/jungle-strike-apk-telegram.yml` from this app folder. It builds on pull requests that touch the game/workflow, and publishes a short-lived APK artifact on the PR run (no Telegram secrets are used for PRs). After the workflow is on the default branch, manual dispatch or a `jungle-v*` tag builds and sends the APK to Telegram. It generates Android platform files and runs formatting/analyzer/tests before building.
 
 One-time GitHub repository setup:
 
