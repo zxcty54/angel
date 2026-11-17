@@ -3,7 +3,7 @@ class_name JunglePlayer
 
 signal health_changed(current: int, maximum: int)
 
-const TOUCH_CONTROLS := preload("res://scripts/touch_controls.gd")
+const TOUCH_CONTROLS = preload("res://scripts/touch_controls.gd")
 
 @export var move_speed := 5.2
 @export var acceleration := 18.0
@@ -45,7 +45,7 @@ func _ready() -> void:
 		var controls_layer := CanvasLayer.new()
 		controls_layer.name = "TouchControlsLayer"
 		get_tree().current_scene.add_child(controls_layer)
-		var controls := TOUCH_CONTROLS.new()
+		var controls = TOUCH_CONTROLS.new()
 		controls_layer.add_child(controls)
 		controls.move_changed.connect(func(value: Vector2): touch_move = value)
 		controls.fire_changed.connect(func(pressed: bool): touch_fire = pressed)

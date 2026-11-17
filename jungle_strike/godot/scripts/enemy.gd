@@ -40,7 +40,7 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, 8.0 * delta)
 		velocity.z = move_toward(velocity.z, 0.0, 8.0 * delta)
 		if attack_cooldown <= 0.0 and player.has_method("take_damage"):
-			player.take_damage(is_boss ? 18 : 10)
+			player.take_damage(18 if is_boss else 10)
 			attack_cooldown = 1.1 if is_boss else 1.5
 	move_and_slide()
 
