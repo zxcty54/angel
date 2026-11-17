@@ -157,7 +157,7 @@ func _begin_floor() -> void:
 		spawn_count = 2 + mini(chapter, 3)
 	_spawn_guards(spawn_count)
 	_update_hud()
-	var guidance := RADIO_GUIDANCE[(mission - 1) % RADIO_GUIDANCE.size()]
+	var guidance: String = RADIO_GUIDANCE[(mission - 1) % RADIO_GUIDANCE.size()]
 	_radio_transmission("DR. MIRA", "Floor %02d: %s" % [mission, guidance])
 
 func _spawn_guards(count: int) -> void:
