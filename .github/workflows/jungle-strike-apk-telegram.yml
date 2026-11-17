@@ -1,0 +1,64 @@
+name: Jungle Strike APK → Telegram
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['jungle-v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jungle-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-send:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: jungle_strike
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check Telegram secrets are configured
+        run: python3 scripts/send_telegram.py --check-config
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Android project files
+        run: flutter create --platforms=android --org com.junglestrike .
+
+      - name: Install dependencies and verify
+        run: |
+          flutter pub get
+          dart format lib test
+          flutter analyze --fatal-infos
+          flutter test
+
+      - name: Build release APK
+        run: flutter build apk --release --build-number="$GITHUB_RUN_NUMBER"
+
+      - name: Send APK to Telegram
+        run: python3 scripts/send_telegram.py --file build/app/outputs/flutter-apk/app-release.apk
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          BUILD_VERSION: ${{ github.ref_name }}
