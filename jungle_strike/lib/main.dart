@@ -201,10 +201,18 @@ class _GameScreenState extends State<GameScreen> {
     appBar: AppBar(
       title: const Text('JUNGLE STRIKE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.3)),
       backgroundColor: const Color(0xff101a25),
-      actions: [IconButton(icon: const Icon(Icons.help_outline), onPressed: () => showDialog<void>(
-        context: context,
-        builder: (c) => const AlertDialog(title: Text('How to play'), content: Text('Move, jump, hold DOWN to go prone, or dodge to evade. Cycle PULSE, SPREAD and ROCKET weapons. Tap the emote button to cheer! Progress saves at mission checkpoints.'),
-      ))],
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.help_outline),
+          onPressed: () => showDialog<void>(
+            context: context,
+            builder: (c) => const AlertDialog(
+              title: Text('How to play'),
+              content: Text('Move, jump, hold DOWN to go prone, or dodge to evade. Cycle PULSE, SPREAD and ROCKET weapons. Tap the emote button to cheer! Progress saves at mission checkpoints.'),
+            ),
+          ),
+        ),
+      ],
     ),
     body: SafeArea(child: Column(children: [
       Padding(
