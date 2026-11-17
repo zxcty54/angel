@@ -92,7 +92,7 @@ jobs:
             grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid' /tmp/godot-import.log | head -n 30 | while IFS= read -r line; do echo "::error title=Godot import::$line"; done
             exit "$import_status"
           fi
-          godot --headless --path jungle_strike/godot --export-debug Android jungle_strike/godot/build/Jungle-Strike.apk --verbose 2>&1 | tee /tmp/godot-export.log
+          godot --headless --path jungle_strike/godot --export-debug Android build/Jungle-Strike.apk --verbose 2>&1 | tee /tmp/godot-export.log
           export_status=${PIPESTATUS[0]}
           if [[ $export_status -ne 0 ]]; then
             grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid|not found|not configured|configuration' /tmp/godot-export.log | head -n 40 | while IFS= read -r line; do echo "::error title=Godot Android export::$line"; done
