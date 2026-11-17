@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'game_actor.dart';
 
 void main() => runApp(const JungleStrikeApp());
 
@@ -72,12 +73,14 @@ String missionBackground(int level)=>switch(level){2=>'assets/mission_bridge.png
 class GameScreen extends StatefulWidget { const GameScreen({super.key}); @override State<GameScreen> createState()=>_GameScreenState(); }
 class _GameScreenState extends State<GameScreen> {
   Timer? timer;
-  double x = .16, jump = 0, scroll = 0;
-  int score = 0, armor = 3, level = 1, bossHp = 10, killsThisMission = 0;
+  double x = .16, jump = 0, scroll = 0, fireCooldown = 0, spawnCooldown = 0, invulnerable = 0;
+  int score = 0, armor = 3, level = 1, bossHp = 10, killsThisMission = 0, frame = 0, spawnIndex = 0;
   int unlockedMission = 1, bestScore = 0;
-  bool running = false, firing = false, hitThisWave = false;
-  bool campaignWon = false, prone = false, dodging = false, dodgeReady = true;
+  bool running = false, firing = false, campaignWon = false;
+  bool prone = false, dodging = false, dodgeReady = true, bossSpawned = false;
   String weapon = 'PULSE', emote = '';
+  final List<GameEnemy> enemies = [];
+  final List<GameProjectile> projectiles = [];
   static const _weapons = ['PULSE', 'SPREAD', 'ROCKET'];
   static const _emotes = ['💪', '🔥', '😎', '❤️'];
 
@@ -112,59 +115,138 @@ class _GameScreenState extends State<GameScreen> {
       armor = 3;
       x = .16;
       scroll = 0;
-      hitThisWave = false;
+      frame = 0;
+      spawnIndex = 0;
+      fireCooldown = 0;
+      spawnCooldown = .35;
+      invulnerable = 0;
       killsThisMission = 0;
       level = unlockedMission;
-      bossHp = 10;
+      bossHp = 12;
+      bossSpawned = false;
+      enemies.clear();
+      projectiles.clear();
       prone = false;
       dodging = false;
       weapon = 'PULSE';
       emote = '';
     });
     timer?.cancel();
-    timer = Timer.periodic(const Duration(milliseconds: 55), (_) {
-      if (!mounted || !running) { return; }
-      var save = false;
-      setState(() {
-        scroll += .012;
-        score += firing ? (weapon == 'ROCKET' ? 3 : 2) : 1;
-        final enemy = .88 - scroll * 1.15;
-        if (!hitThisWave && (enemy - x).abs() < .08) {
-          hitThisWave = true;
-          if (firing) {
-            final damage = weapon == 'ROCKET' ? 4 : weapon == 'SPREAD' ? 2 : 1;
-            score += weapon == 'ROCKET' ? 180 : 120;
-            if (level == 6) {
-              bossHp -= damage;
-              if (bossHp <= 0) {
-                running = false;
-                campaignWon = true;
-                unlockedMission = 6;
-                save = true;
-              }
+    timer = Timer.periodic(const Duration(milliseconds: 50), (_) => _step());
+  }
+
+  void _step() {
+    if (!mounted || !running) { return; }
+    var save = false;
+    const dt = .05;
+    setState(() {
+      frame++;
+      scroll = (scroll + dt * .22) % 1;
+      fireCooldown -= dt;
+      spawnCooldown -= dt;
+      invulnerable = math.max(0, invulnerable - dt).toDouble();
+      final playerY = .70 - jump * .20;
+
+      // Hold FIRE to emit real, moving projectiles. Each weapon has different
+      // cadence, spread and damage rather than awarding points for holding it.
+      if (firing && fireCooldown <= 0) {
+        final damage = weapon == 'ROCKET' ? 4 : 1;
+        final speed = weapon == 'ROCKET' ? 1.05 : 1.65;
+        projectiles.add(GameProjectile(x: x + .035, y: playerY, vx: speed, vy: 0, damage: damage, fromEnemy: false));
+        if (weapon == 'SPREAD') {
+          projectiles.add(GameProjectile(x: x + .035, y: playerY, vx: 1.35, vy: -.30, damage: 1, fromEnemy: false));
+          projectiles.add(GameProjectile(x: x + .035, y: playerY, vx: 1.35, vy: .30, damage: 1, fromEnemy: false));
+        }
+        fireCooldown = weapon == 'ROCKET' ? .55 : weapon == 'SPREAD' ? .30 : .16;
+      }
+
+      // Four regular enemies clear a mission. The last mission adds a boss
+      // with a large health pool and its own projectile attacks.
+      if (spawnCooldown <= 0 && enemies.length < 4 && !(level == 6 && bossSpawned)) {
+        spawnIndex++;
+        final flyer = spawnIndex % 3 == 0;
+        enemies.add(GameEnemy(x: 1.08, y: flyer ? .53 : .70, speed: flyer ? .20 : .13, hp: flyer ? 2 : 1, fireIn: flyer ? .9 : 1.35));
+        spawnCooldown = level == 6 ? .95 : 1.25;
+      }
+      if (level == 6 && killsThisMission >= 2 && !bossSpawned) {
+        enemies.add(GameEnemy(x: 1.08, y: .58, speed: .045, hp: 12, boss: true, fireIn: .65));
+        bossSpawned = true;
+      }
+
+      for (final enemy in enemies) {
+        enemy.x -= enemy.speed * dt;
+        enemy.fireIn -= dt;
+        if (enemy.fireIn <= 0 && enemy.x < .92) {
+          final targetY = prone ? .75 : playerY;
+          projectiles.add(GameProjectile(x: enemy.x - (enemy.boss ? .09 : .035), y: enemy.y, vx: enemy.boss ? -.58 : -.72, vy: (targetY - enemy.y) * .32, damage: 1, fromEnemy: true));
+          enemy.fireIn = enemy.boss ? .52 : 1.5;
+        }
+      }
+
+      for (final bullet in projectiles) {
+        bullet.x += bullet.vx * dt;
+        bullet.y += bullet.vy * dt;
+      }
+      projectiles.removeWhere((b) => b.x < -.1 || b.x > 1.2 || b.y < .1 || b.y > 1);
+
+      // Player shots hit enemies; enemy shots and contact can hurt the player.
+      for (final bullet in projectiles.where((b) => !b.fromEnemy).toList()) {
+        GameEnemy? target;
+        for (final enemy in enemies) {
+          if ((enemy.x - bullet.x).abs() < (enemy.boss ? .09 : .055) &&
+              (enemy.y - bullet.y).abs() < (enemy.boss ? .18 : .12)) {
+            target = enemy;
+            break;
+          }
+        }
+        if (target != null) {
+          target.hp -= bullet.damage;
+          projectiles.remove(bullet);
+          if (target.boss) bossHp = target.hp;
+          if (target.hp <= 0) {
+            enemies.remove(target);
+            score += target.boss ? 1500 : 100;
+            if (target.boss) {
+              running = false;
+              campaignWon = true;
+              save = true;
             } else {
               killsThisMission++;
-              if (killsThisMission >= 3) {
+              if (level < 6 && killsThisMission >= 4) {
                 level++;
                 unlockedMission = math.max(unlockedMission, level).toInt();
                 killsThisMission = 0;
-                bossHp = 10;
+                spawnCooldown = .8;
                 save = true;
               }
             }
-          } else if (jump == 0 && !dodging && !prone) {
-            armor--;
-            if (armor <= 0) { running = false; }
           }
         }
-        if (scroll > 1) {
-          scroll = 0;
-          hitThisWave = false;
+      }
+
+      for (final bullet in projectiles.where((b) => b.fromEnemy).toList()) {
+        final verticalHit = prone ? bullet.y > .69 : (bullet.y - playerY).abs() < .12;
+        if ((bullet.x - x).abs() < .045 && verticalHit && !dodging && invulnerable <= 0) {
+          projectiles.remove(bullet);
+          armor--;
+          invulnerable = 1.0;
+          if (armor <= 0) { running = false; save = true; }
         }
-        if (!running || campaignWon || (score > bestScore && score % 100 == 0)) { save = true; }
-      });
-      if (save) { _saveProgress(); }
+      }
+
+      for (final enemy in enemies.toList()) {
+        final verticalHit = prone ? enemy.y > .65 : (enemy.y - playerY).abs() < .14;
+        if ((enemy.x - x).abs() < (enemy.boss ? .08 : .045) && verticalHit && !dodging && invulnerable <= 0) {
+          armor--;
+          invulnerable = 1.0;
+          enemy.x += .12;
+          if (armor <= 0) { running = false; save = true; }
+        }
+      }
+      enemies.removeWhere((e) => e.x < -.15 && !e.boss);
+      if (score > bestScore && score % 100 == 0) { save = true; }
     });
+    if (save) { _saveProgress(); }
   }
 
   void move(double delta) => setState(() => x = (x + delta).clamp(.05, .66).toDouble());
@@ -228,13 +310,13 @@ class _GameScreenState extends State<GameScreen> {
       ),
       if (level == 6 && running) Padding(
         padding: const EdgeInsets.symmetric(horizontal: 18),
-        child: ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(value: (bossHp / 10).clamp(0, 1).toDouble(), minHeight: 8, color: const Color(0xffef554b), backgroundColor: Colors.white24)),
+        child: ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(value: (bossHp / 12).clamp(0, 1).toDouble(), minHeight: 8, color: const Color(0xffef554b), backgroundColor: Colors.white24)),
       ),
       Expanded(child: GestureDetector(
         onTap: running ? null : start,
         child: Stack(fit: StackFit.expand, children: [
           Image.asset(missionBackground(level), fit: BoxFit.cover, errorBuilder: (c, e, s) => const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xff14283a), Color(0xff385c55), Color(0xff182b30)])))),
-          CustomPaint(size: Size.infinite, painter: JunglePainter(x: x, jump: jump, scroll: scroll, shooting: firing, level: level, weapon: weapon, prone: prone, dodging: dodging)),
+          CustomPaint(size: Size.infinite, painter: JunglePainter(x: x, jump: jump, scroll: scroll, shooting: firing, level: level, weapon: weapon, prone: prone, dodging: dodging, enemies: enemies, projectiles: projectiles, frame: frame)),
           if (emote.isNotEmpty && running) Positioned(left: MediaQuery.sizeOf(context).width * x, top: 30, child: Text(emote, style: const TextStyle(fontSize: 40))),
           if (!running) Center(child: Container(
             margin: const EdgeInsets.all(18), padding: const EdgeInsets.all(24),
@@ -277,8 +359,10 @@ class _GameScreenState extends State<GameScreen> {
 }
 
 class JunglePainter extends CustomPainter {
-  JunglePainter({required this.x, required this.jump, required this.scroll, required this.shooting, required this.level, required this.weapon, required this.prone, required this.dodging});
-  final double x, jump, scroll; final bool shooting, prone, dodging; final int level; final String weapon;
+  JunglePainter({required this.x, required this.jump, required this.scroll, required this.shooting, required this.level, required this.weapon, required this.prone, required this.dodging, required this.enemies, required this.projectiles, required this.frame});
+  final double x, jump, scroll; final bool shooting, prone, dodging; final int level, frame; final String weapon;
+  final List<GameEnemy> enemies;
+  final List<GameProjectile> projectiles;
   @override
   void paint(Canvas c, Size s) {
     final ground = s.height * .78;
@@ -308,10 +392,43 @@ class JunglePainter extends CustomPainter {
       c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(px+6,py-20,28,6),const Radius.circular(3)),Paint()..color=const Color(0xffd8e6df));
     }
 
-    final dx=s.width*(.88-scroll*1.15);
-    if(dx>px+28){final center=Offset(dx,ground-(level==6?86:72));final size=level==6?62.0:32.0;c.drawCircle(center,size*.72,Paint()..color=const Color(0x66ff634e)..maskFilter=MaskFilter.blur(BlurStyle.normal,level==6?25:14));c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:center,width:size,height:level==6?38:19),Radius.circular(level==6?14:8)),Paint()..shader=const LinearGradient(colors:[Color(0xfff4774e),Color(0xff8b2d46)]).createShader(Rect.fromCenter(center:center,width:size,height:40)));c.drawCircle(Offset(dx+size*.18,center.dy-2),level==6?5:3,Paint()..color=const Color(0xffffe9a4));c.drawRect(Rect.fromLTWH(dx-size*.28,center.dy+10,level==6?9:5,level==6?22:11),Paint()..color=const Color(0xff323a40));if(level==6){c.drawLine(Offset(dx-size*.65,center.dy-10),Offset(dx+size*.65,center.dy-10),Paint()..color=const Color(0xffffc857)..strokeWidth=4);}}
-    if(shooting){final beamColor=weapon=='ROCKET'?const Color(0xffff7043):weapon=='SPREAD'?const Color(0xff77eaff):const Color(0xffffe680);final beam=Paint()..color=beamColor..strokeWidth=(weapon=='ROCKET'?6.0:weapon=='SPREAD'?4.0:3.0)..maskFilter=const MaskFilter.blur(BlurStyle.normal,2);final startY=prone?ground-20:py-17;c.drawLine(Offset(px+25,startY),Offset(math.max(px+48,dx-15).toDouble(),ground-72),beam);if(weapon=='ROCKET'){c.drawCircle(Offset(px+42,startY),7,Paint()..color=const Color(0xffffa35b)..maskFilter=const MaskFilter.blur(BlurStyle.normal,7));}if(weapon=='SPREAD'){c.drawLine(Offset(px+25,startY),Offset(dx-15,ground-80),Paint()..color=beamColor..strokeWidth=2);c.drawLine(Offset(px+25,startY),Offset(dx-15,ground-64),Paint()..color=beamColor..strokeWidth=2);}}
+    for (final enemy in enemies) {
+      final center = Offset(s.width * enemy.x, s.height * enemy.y);
+      if (enemy.boss) {
+        final pulse = 1 + math.sin(frame * .16) * .05;
+        final w = s.width * .16 * pulse;
+        c.drawCircle(center, w * .72, Paint()..color = const Color(0x99ff514b)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24));
+        c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: center, width: w, height: w * .72), const Radius.circular(18)), Paint()..shader = const LinearGradient(colors: [Color(0xffff8655), Color(0xff8b2344)]).createShader(Rect.fromCenter(center: center, width: w, height: w * .72)));
+        c.drawCircle(Offset(center.dx - w * .16, center.dy - 3), 5, Paint()..color = const Color(0xffffe29b));
+        c.drawCircle(Offset(center.dx + w * .16, center.dy - 3), 5, Paint()..color = const Color(0xffffe29b));
+        c.drawLine(Offset(center.dx - w * .62, center.dy - 8), Offset(center.dx + w * .62, center.dy - 8), Paint()..color = const Color(0xffffc857)..strokeWidth = 5);
+      } else if (enemy.y < .6) {
+        c.drawCircle(center, 17, Paint()..color = const Color(0x88ff614c)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12));
+        c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: center, width: 34, height: 17), const Radius.circular(7)), Paint()..color = const Color(0xffdf584c));
+        c.drawCircle(Offset(center.dx + 5, center.dy - 2), 3, Paint()..color = const Color(0xffffe9a4));
+        c.drawLine(Offset(center.dx - 23, center.dy), Offset(center.dx + 23, center.dy), Paint()..color = const Color(0xffd7dce0)..strokeWidth = 3);
+      } else {
+        c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx - 9, center.dy - 23, 18, 25), const Radius.circular(4)), Paint()..color = const Color(0xffe6574e));
+        c.drawCircle(Offset(center.dx, center.dy - 28), 8, Paint()..color = const Color(0xffd8ad83));
+        c.drawRect(Rect.fromLTWH(center.dx + 5, center.dy - 17, 20, 4), Paint()..color = const Color(0xffdce6e1));
+        c.drawRect(Rect.fromLTWH(center.dx - 8, center.dy + 1, 5, 13), Paint()..color = const Color(0xff394551));
+        c.drawRect(Rect.fromLTWH(center.dx + 3, center.dy + 1, 5, 13), Paint()..color = const Color(0xff394551));
+      }
+      if (enemy.hp > 1) {
+        c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx - 20, center.dy - (enemy.boss ? 38 : 39), 40, 4), const Radius.circular(2)), Paint()..color = Colors.white24);
+        c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx - 20, center.dy - (enemy.boss ? 38 : 39), 40 * (enemy.hp / (enemy.boss ? 12 : 2)).clamp(0, 1), 4), const Radius.circular(2)), Paint()..color = const Color(0xffff6961));
+      }
+    }
+    for (final bullet in projectiles) {
+      final pos = Offset(s.width * bullet.x, s.height * bullet.y);
+      final color = bullet.fromEnemy ? const Color(0xffff5955) : weapon == 'ROCKET' ? const Color(0xffffa451) : weapon == 'SPREAD' ? const Color(0xff77eaff) : const Color(0xffffe680);
+      c.drawCircle(pos, bullet.fromEnemy ? 5 : weapon == 'ROCKET' ? 8 : 4, Paint()..color = color..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5));
+      c.drawCircle(pos, bullet.fromEnemy ? 2.5 : 2, Paint()..color = Colors.white);
+    }
+    if (shooting) {
+      c.drawCircle(Offset(px + 32, prone ? ground - 20 : py - 17), weapon == 'ROCKET' ? 8 : 4, Paint()..color = weapon == 'ROCKET' ? const Color(0xffffa451) : const Color(0xfffff0ae));
+    }
     for(int i=0;i<16;i++){final xx=(i*53.0-scroll*130)%(s.width+20);final yy=s.height*(.2+(i%5)*.1);c.drawCircle(Offset(xx,yy),1.2+(i%2),Paint()..color=const Color(0x88c5ffd4));}
   }
-  @override bool shouldRepaint(covariant JunglePainter old)=>old.x!=x||old.jump!=jump||old.scroll!=scroll||old.shooting!=shooting||old.level!=level||old.weapon!=weapon||old.prone!=prone||old.dodging!=dodging;
+  @override bool shouldRepaint(covariant JunglePainter old)=>old.x!=x||old.jump!=jump||old.scroll!=scroll||old.shooting!=shooting||old.level!=level||old.weapon!=weapon||old.prone!=prone||old.dodging!=dodging||old.frame!=frame;
 }
