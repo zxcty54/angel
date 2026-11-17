@@ -61,7 +61,7 @@ jobs:
           GODOT_VERSION=$(godot --version | awk 'NR==1 {print $1}')
           GODOT_RELEASE_VERSION='4.4.1-stable'
           TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/$GODOT_VERSION"
-          mkdir -p "$TEMPLATE_DIR" "$HOME/.local/share/godot/keystores" jungle_strike/godot/build
+          mkdir -p "$TEMPLATE_DIR" "$HOME/.config/godot" "$HOME/.local/share/godot/keystores" jungle_strike/godot/build
           curl -fL --retry 3 "https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE_VERSION}/Godot_v${GODOT_RELEASE_VERSION}_export_templates.tpz" -o /tmp/godot-templates.tpz
           mkdir -p /tmp/godot-templates
           unzip -oq /tmp/godot-templates.tpz -d /tmp/godot-templates
