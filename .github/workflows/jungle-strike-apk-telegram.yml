@@ -31,7 +31,7 @@ jobs:
           persist-credentials: false
 
       - name: Check Telegram secrets are configured
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         run: python3 scripts/send_telegram.py --check-config
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -67,18 +67,12 @@ jobs:
       - name: Build release APK
         run: flutter build apk --release --build-number="$GITHUB_RUN_NUMBER"
 
-      - name: Publish APK as PR artifact
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: jungle-strike-android-apk
-          path: jungle_strike/build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
-          retention-days: 7
+      - name: Package APK as a ZIP
+        run: python3 scripts/package_apk.py --apk build/app/outputs/flutter-apk/app-release.apk --output delivery/Jungle-Strike-${GITHUB_RUN_NUMBER}.zip --version "$GITHUB_RUN_NUMBER"
 
-      - name: Send APK to Telegram
-        if: github.event_name != 'pull_request'
-        run: python3 scripts/send_telegram.py --file build/app/outputs/flutter-apk/app-release.apk
+      - name: Send APK ZIP to Telegram
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        run: python3 scripts/send_telegram.py --file delivery/Jungle-Strike-${GITHUB_RUN_NUMBER}.zip
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

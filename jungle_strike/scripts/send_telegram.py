@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Send a built APK to the configured Telegram chat without logging credentials."""
+"""Send a packaged Android APK ZIP to Telegram without logging credentials."""
 import argparse
 import json
 import os
@@ -27,15 +27,15 @@ def main():
             print('Telegram configuration is present.')
             return 0
         if not args.file or not os.path.isfile(args.file):
-            raise ValueError('APK file does not exist.')
+            raise ValueError('ZIP file does not exist.')
         boundary = '----JungleStrikeTelegramUpload'
         filename = os.path.basename(args.file)
-        caption = f"Jungle Strike Android APK · {os.environ.get('BUILD_VERSION', 'manual build')}"
+        caption = f"Jungle Strike Android APK ZIP · {os.environ.get('BUILD_VERSION', 'manual build')}"
         with open(args.file, 'rb') as apk:
             body = b''.join([
                 f'--{boundary}\r\nContent-Disposition: form-data; name="chat_id"\r\n\r\n{chat}\r\n'.encode(),
                 f'--{boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\n{caption}\r\n'.encode(),
-                f'--{boundary}\r\nContent-Disposition: form-data; name="document"; filename="{filename}"\r\nContent-Type: application/vnd.android.package-archive\r\n\r\n'.encode(),
+                f'--{boundary}\r\nContent-Disposition: form-data; name="document"; filename="{filename}"\r\nContent-Type: application/zip\r\n\r\n'.encode(),
                 apk.read(), f'\r\n--{boundary}--\r\n'.encode(),
             ])
         request = urllib.request.Request(
@@ -45,7 +45,7 @@ def main():
             result = json.loads(response.read())
         if not result.get('ok'):
             raise RuntimeError('Telegram rejected the upload. Check bot permissions and chat ID.')
-        print(f'APK delivered to Telegram chat {chat}.')
+        print('APK ZIP delivered to Telegram.')
         return 0
     except (ValueError, OSError, urllib.error.URLError, RuntimeError) as exc:
         print(f'APK delivery failed: {exc}', file=sys.stderr)
