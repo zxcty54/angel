@@ -74,7 +74,7 @@ String missionBackground(int level)=>switch(level){2=>'assets/mission_bridge.png
 class GameScreen extends StatefulWidget { const GameScreen({super.key}); @override State<GameScreen> createState()=>_GameScreenState(); }
 class _GameScreenState extends State<GameScreen> {
   Timer? timer, jumpTimer;
-  double x = .16, jump = 0, scroll = 0, fireCooldown = 0, spawnCooldown = 0, invulnerable = 0, moveAxis = 0, fireRate = 1, cameraShake = 0;
+  double x = .16, jump = 0, scroll = 0, fireCooldown = 0, spawnCooldown = 0, invulnerable = 0, moveAxis = 0, fireRate = 1, cameraShake = 0, idleSeconds = 0;
   Offset aimAxis = Offset.zero;
   bool _stickUpActive = false, pausedForUpgrade = false, doubleJump = false;
   int shieldCharges = 0, damageBonus = 0, jumpUses = 0, hitStopFrames = 0;
@@ -84,8 +84,9 @@ class _GameScreenState extends State<GameScreen> {
   bool prone = false, dodging = false, dodgeReady = true, bossSpawned = false;
   String weapon = 'PULSE', emote = '';
   final List<GameEnemy> enemies = [];
+  final List<GameDeath> deaths = [];
   final List<GameProjectile> projectiles = [];
-  static const _weapons = ['PULSE', 'SPREAD', 'ROCKET'];
+  static const _weapons = ['PISTOL', 'PULSE', 'SPREAD', 'ROCKET'];
   static const _emotes = ['💪', '🔥', '😎', '❤️'];
 
   @override
@@ -127,6 +128,7 @@ class _GameScreenState extends State<GameScreen> {
       jumpUses = 0;
       hitStopFrames = 0;
       cameraShake = 0;
+      idleSeconds = 0;
       pausedForUpgrade = false;
       scroll = 0;
       frame = 0;
@@ -139,6 +141,7 @@ class _GameScreenState extends State<GameScreen> {
       bossHp = 12;
       bossSpawned = false;
       enemies.clear();
+      deaths.clear();
       projectiles.clear();
       prone = false;
       dodging = false;
@@ -163,6 +166,7 @@ class _GameScreenState extends State<GameScreen> {
       spawnCooldown -= dt;
       invulnerable = math.max(0, invulnerable - dt).toDouble();
       cameraShake = math.max(0, cameraShake - dt * 2.8).toDouble();
+      if (moveAxis.abs() < .08 && aimAxis.distance < .2 && !firing && jump == 0 && !prone && !dodging) { idleSeconds += dt; } else { idleSeconds = 0; }
       final playerY = .70 - jump * .20;
 
       // Zero right-stick input softly locks on to the nearest enemy. Dragging
@@ -187,8 +191,8 @@ class _GameScreenState extends State<GameScreen> {
       // cadence, spread, damage and muzzle feedback.
       if (firing && fireCooldown <= 0) {
         final damage = (weapon == 'ROCKET' ? 4 : 1) + damageBonus;
-        final speed = weapon == 'ROCKET' ? 1.05 : 1.65;
-        final originX = x + (shotDirection.dx < -.1 ? -.03 : .20);
+        final speed = weapon == 'ROCKET' ? 1.05 : weapon == 'PISTOL' ? 1.95 : 1.65;
+        final originX = x + (shotDirection.dx < -.1 ? -.03 : weapon == 'PISTOL' ? .14 : .20);
         projectiles.add(GameProjectile(x: originX, y: playerY, vx: shotDirection.dx * speed, vy: shotDirection.dy * speed, damage: damage, fromEnemy: false));
         if (weapon == 'SPREAD') {
           final angle = math.atan2(shotDirection.dy, shotDirection.dx);
@@ -197,7 +201,7 @@ class _GameScreenState extends State<GameScreen> {
             projectiles.add(GameProjectile(x: originX, y: playerY, vx: math.cos(pelletAngle) * 1.35, vy: math.sin(pelletAngle) * 1.35, damage: 1 + damageBonus, fromEnemy: false));
           }
         }
-        fireCooldown = (weapon == 'ROCKET' ? .55 : weapon == 'SPREAD' ? .30 : .16) * fireRate;
+        fireCooldown = (weapon == 'ROCKET' ? .55 : weapon == 'PISTOL' ? .28 : weapon == 'SPREAD' ? .30 : .16) * fireRate;
       }
 
       // Four regular enemies clear a mission. The last mission adds a boss
@@ -215,6 +219,7 @@ class _GameScreenState extends State<GameScreen> {
       }
 
       for (final enemy in enemies) {
+        enemy.flashFor = math.max(0, enemy.flashFor - dt).toDouble();
         enemy.x -= enemy.speed * dt;
         if (!enemy.boss && enemy.y < .6 && enemy.x < .82) { enemy.y = math.min(.70, enemy.y + dt * .16).toDouble(); }
         enemy.fireIn -= dt;
@@ -232,6 +237,16 @@ class _GameScreenState extends State<GameScreen> {
           }
         }
       }
+
+      for (final death in deaths) {
+        death.x += death.vx * dt;
+        death.vy += 1.25 * dt;
+        death.y += death.vy * dt;
+        death.rotation += death.vx * dt * 2.4;
+        death.life -= dt;
+        if (death.y >= .70 && death.bounces == 0) { death.y = .70; death.vy = -.24; death.vx *= .62; death.bounces++; }
+      }
+      deaths.removeWhere((death) => death.life <= 0);
 
       for (final bullet in projectiles) {
         bullet.x += bullet.vx * dt;
@@ -251,9 +266,11 @@ class _GameScreenState extends State<GameScreen> {
         }
         if (target != null) {
           target.hp -= bullet.damage;
+          target.flashFor = .1;
           projectiles.remove(bullet);
           if (target.boss) bossHp = target.hp;
           if (target.hp <= 0) {
+            deaths.add(GameDeath(x: target.x, y: target.y, vx: .45 + bullet.vx.abs()*.2, vy: -.55, rotation: -.2));
             enemies.remove(target);
             score += target.boss ? 1500 : 100;
             if (target.explosive) {
@@ -265,6 +282,7 @@ class _GameScreenState extends State<GameScreen> {
                   bossHp = victim.hp;
                   if (victim.hp <= 0) { enemies.remove(victim); running = false; campaignWon = true; save = true; }
                 } else {
+                  deaths.add(GameDeath(x: victim.x, y: victim.y, vx: .62, vy: -.7, rotation: -.3));
                   enemies.remove(victim);
                   score += 100;
                   killsThisMission++;
@@ -373,7 +391,7 @@ class _GameScreenState extends State<GameScreen> {
     if (jump == 0) { jumpUses = 0; }
     if (jumpUses >= (doubleJump ? 2 : 1)) { return; }
     jumpUses++;
-    setState(() { jump = 1; prone = false; });
+    setState(() { jump = 1; prone = false; idleSeconds = 0; });
     jumpTimer?.cancel();
     jumpTimer = Timer(const Duration(milliseconds: 650), () {
       if (mounted) { setState(() { jump = 0; jumpUses = 0; }); }
@@ -382,17 +400,19 @@ class _GameScreenState extends State<GameScreen> {
 
   void doDodge() {
     if (!running || !dodgeReady) { return; }
-    setState(() { dodging = true; dodgeReady = false; prone = false; x = (x + .10).clamp(.05, .66).toDouble(); });
+    setState(() { dodging = true; dodgeReady = false; prone = false; idleSeconds = 0; x = (x + .10).clamp(.05, .66).toDouble(); });
     Future.delayed(const Duration(milliseconds: 430), () { if (mounted) { setState(() => dodging = false); } });
     Future.delayed(const Duration(milliseconds: 1200), () { if (mounted) { setState(() => dodgeReady = true); } });
   }
 
   void cycleWeapon() => setState(() {
     weapon = _weapons[(_weapons.indexOf(weapon) + 1) % _weapons.length];
+    idleSeconds = 0;
   });
 
   void nextEmote() => setState(() {
     emote = _emotes[(_emotes.indexOf(emote) + 1) % _emotes.length];
+    idleSeconds = 0;
     Future.delayed(const Duration(milliseconds: 1300), () { if (mounted) { setState(() => emote = ''); } });
   });
 
@@ -438,7 +458,7 @@ class _GameScreenState extends State<GameScreen> {
         onTap: running ? null : start,
         child: Stack(fit: StackFit.expand, children: [
           Image.asset(missionBackground(level), fit: BoxFit.cover, filterQuality: FilterQuality.none, errorBuilder: (c, e, s) => const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xff14283a), Color(0xff385c55), Color(0xff182b30)])))),
-          CustomPaint(size: Size.infinite, painter: JunglePainter(x: x, jump: jump, scroll: scroll, shooting: firing, level: level, weapon: weapon, prone: prone, dodging: dodging, enemies: enemies, projectiles: projectiles, frame: frame, aimAxis: aimAxis, shake: cameraShake)),
+          CustomPaint(size: Size.infinite, painter: JunglePainter(x: x, jump: jump, scroll: scroll, shooting: firing, level: level, weapon: weapon, prone: prone, dodging: dodging, enemies: enemies, projectiles: projectiles, deaths: deaths, frame: frame, aimAxis: aimAxis, shake: cameraShake, idleSeconds: idleSeconds, startled: cameraShake > .5)),
           if (emote.isNotEmpty && running) Positioned(left: MediaQuery.sizeOf(context).width * x, top: 30, child: Text(emote, style: const TextStyle(fontSize: 40))),
           if (!running) Center(child: Container(
             margin: const EdgeInsets.all(18), padding: const EdgeInsets.all(24),
@@ -461,6 +481,7 @@ class _GameScreenState extends State<GameScreen> {
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               _VirtualJoystick(onMove: (stick) {
                 moveAxis = stick.dx;
+                if (stick.distance > .15) { idleSeconds = 0; }
                 final wantsJump = stick.dy < -.68;
                 if (wantsJump && !_stickUpActive) { doJump(); }
                 _stickUpActive = wantsJump;
@@ -473,15 +494,15 @@ class _GameScreenState extends State<GameScreen> {
                 const SizedBox(width: 5),
                 control(Icons.directions_run, doDodge, tint: const Color(0xff42b9a5)),
                 const SizedBox(width: 5),
-                control(Icons.keyboard_arrow_down, () => setState(() => prone = !prone), tint: const Color(0xff7485ca)),
+                control(Icons.keyboard_arrow_down, () => setState(() { prone = !prone; idleSeconds = 0; }), tint: const Color(0xff7485ca)),
               ]),
               const SizedBox(width: 10),
-              _VirtualJoystick(icon: Icons.gps_fixed, onMove: (stick) => aimAxis = stick),
+              _VirtualJoystick(icon: Icons.gps_fixed, onMove: (stick) { aimAxis = stick; if (stick.distance > .15) { idleSeconds = 0; } }),
               const SizedBox(width: 10),
               GestureDetector(
-                onLongPressStart: (_) => setState(() => firing = true),
+                onLongPressStart: (_) => setState(() { firing = true; idleSeconds = 0; }),
                 onLongPressEnd: (_) => setState(() => firing = false),
-                onTapDown: (_) => setState(() => firing = true),
+                onTapDown: (_) => setState(() { firing = true; idleSeconds = 0; }),
                 onTapUp: (_) => setState(() => firing = false),
                 child: Container(padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 15), decoration: BoxDecoration(color: const Color(0xffef554b), borderRadius: BorderRadius.circular(16), boxShadow: const [BoxShadow(color: Color(0x88ef554b), blurRadius: 16)]), child: const Row(children: [Icon(Icons.bolt, color: Colors.white), SizedBox(width: 4), Text('FIRE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900))])),
               ),
@@ -581,19 +602,35 @@ class _JoystickTrackPainter extends CustomPainter {
 }
 
 class JunglePainter extends CustomPainter {
-  JunglePainter({required this.x, required this.jump, required this.scroll, required this.shooting, required this.level, required this.weapon, required this.prone, required this.dodging, required this.enemies, required this.projectiles, required this.frame, required this.aimAxis, required this.shake});
-  final double x, jump, scroll, shake; final bool shooting, prone, dodging; final int level, frame; final String weapon; final Offset aimAxis;
+  JunglePainter({required this.x, required this.jump, required this.scroll, required this.shooting, required this.level, required this.weapon, required this.prone, required this.dodging, required this.enemies, required this.projectiles, required this.deaths, required this.frame, required this.aimAxis, required this.shake, required this.idleSeconds, required this.startled});
+  final double x, jump, scroll, shake, idleSeconds; final bool shooting, prone, dodging, startled; final int level, frame; final String weapon; final Offset aimAxis;
   final List<GameEnemy> enemies;
   final List<GameProjectile> projectiles;
+  final List<GameDeath> deaths;
   @override
   void paint(Canvas c, Size s) {
     c.save();
     if (enemies.any((enemy) => enemy.boss)) {
-      c.translate(s.width * .025, s.height * .015);
-      c.scale(1.04);
+      c.translate(s.width * .07, s.height * .055);
+      c.scale(.86);
     }
     if (shake > 0) { c.translate(math.sin(frame * 2.7) * shake * 8, math.cos(frame * 3.1) * shake * 5); }
     final ground = s.height * .78;
+    // Five independently scrolling planes create layered 2.5D parallax depth.
+    c.drawRect(Offset.zero & s, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xff142b43), Color(0xff59717b), Color(0xffb68b61)]).createShader(Offset.zero & s));
+    for (int i=0; i<5; i++) {
+      final factor = .025 + i*.045;
+      final yBase = s.height*(.36+i*.075);
+      final color = [const Color(0xff304b61),const Color(0xff425c61),const Color(0xff4a5148),const Color(0xff374638),const Color(0xff202d27)][i];
+      for (int j=0;j<6;j++) {
+        final xx=((j*s.width/4-scroll*s.width*factor)%(s.width+120))-60;
+        final width=s.width*(.22+i*.035);
+        final height=s.height*(.1+(j%3)*.045);
+        final rect=Rect.fromLTWH(xx,yBase-height,width,height);
+        if (i<2) { final hill=Path()..moveTo(rect.left,rect.bottom)..quadraticBezierTo(rect.center.dx,rect.top,rect.right,rect.bottom)..close(); c.drawPath(hill,Paint()..color=color); }
+        else { c.drawRect(rect,Paint()..color=color); for(int w=0;w<4;w++){c.drawRect(Rect.fromLTWH(xx+8+w*13,yBase-height+8,5,8),Paint()..color=const Color(0x557ed2c0));} }
+      }
+    }
     // Atmospheric overlay, foreground jungle silhouettes and a glowing track.
     c.drawRect(Offset.zero & s, Paint()..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [const Color(0x00101a25), const Color(0x3320312a), const Color(0xff14221f)]).createShader(Offset.zero & s));
     final haze = Paint()..color = const Color(0x446ae0c1)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 40);
@@ -619,6 +656,8 @@ class JunglePainter extends CustomPainter {
       dodging: dodging,
       firing: shooting,
       weapon: weapon,
+      idleSeconds: idleSeconds,
+      startled: startled,
     );
 
     for (final enemy in enemies) {
@@ -650,10 +689,22 @@ class JunglePainter extends CustomPainter {
         c.drawRect(Rect.fromLTWH(center.dx - 8, center.dy + 1, 5, 13), Paint()..color = const Color(0xff394551));
         c.drawRect(Rect.fromLTWH(center.dx + 3, center.dy + 1, 5, 13), Paint()..color = const Color(0xff394551));
       }
+      if (enemy.flashFor > 0) {
+        c.drawCircle(center, enemy.boss ? 42 : 24, Paint()..color = Colors.white.withOpacity((enemy.flashFor/.1).clamp(0,1)*.85)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
+      }
       if (enemy.hp > 1) {
         c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx - 20, center.dy - (enemy.boss ? 38 : 39), 40, 4), const Radius.circular(2)), Paint()..color = Colors.white24);
         c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(center.dx - 20, center.dy - (enemy.boss ? 38 : 39), 40 * (enemy.hp / (enemy.boss ? 12 : 2)).clamp(0, 1), 4), const Radius.circular(2)), Paint()..color = const Color(0xffff6961));
       }
+    }
+    for (final death in deaths) {
+      final center=Offset(s.width*death.x,s.height*death.y);
+      c.save(); c.translate(center.dx,center.dy); c.rotate(death.rotation);
+      final fade=death.life.clamp(0,1);
+      c.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(-12,-20,24,36),const Radius.circular(5)),Paint()..color=Color.fromARGB((255*fade).round(),0xe6,0x68,0x50));
+      c.drawCircle(const Offset(0,-24),8,Paint()..color=Color.fromARGB((255*fade).round(),0xd8,0xad,0x83));
+      c.restore();
+      for(int p=0;p<3;p++){final a=frame*.31+p*2.1;c.drawCircle(center+Offset(math.cos(a)*18,math.sin(a)*12),2.3,Paint()..color=const Color(0xffffc857)..maskFilter=const MaskFilter.blur(BlurStyle.normal,4));}
     }
     for (final bullet in projectiles) {
       final pos = Offset(s.width * bullet.x, s.height * bullet.y);
@@ -662,7 +713,9 @@ class JunglePainter extends CustomPainter {
       c.drawCircle(pos, bullet.fromEnemy ? 2.5 : 2, Paint()..color = Colors.white);
     }
     if (shooting) {
-      c.drawCircle(Offset(px + (prone ? 70 : 78) * unit, prone ? footY - 37 * unit : py), weapon == 'ROCKET' ? 8 : 4, Paint()..color = weapon == 'ROCKET' ? const Color(0xffffa451) : const Color(0xfffff0ae));
+      final muzzle=Offset(px + (prone ? 70 : 78) * unit, prone ? footY - 37 * unit : py);
+      c.drawCircle(muzzle, weapon == 'ROCKET' ? 34 : 20, Paint()..color=(weapon == 'ROCKET' ? const Color(0x66ff8a3d) : const Color(0x66ffe58a))..maskFilter=const MaskFilter.blur(BlurStyle.normal,18));
+      c.drawCircle(muzzle, weapon == 'ROCKET' ? 8 : 4, Paint()..color = weapon == 'ROCKET' ? const Color(0xffffa451) : const Color(0xfffff0ae));
     }
     if (aimAxis.distance > .2) {
       final muzzle = Offset(px + (prone ? 70 : 78) * unit, prone ? footY - 37 * unit : py);
@@ -674,7 +727,13 @@ class JunglePainter extends CustomPainter {
       c.drawCircle(reticle, 4, aimPaint..style=PaintingStyle.stroke);
     }
     for(int i=0;i<16;i++){final xx=(i*53.0-scroll*130)%(s.width+20);final yy=s.height*(.2+(i%5)*.1);c.drawCircle(Offset(xx,yy),1.2+(i%2),Paint()..color=const Color(0x88c5ffd4));}
+    // Near-camera grass and broken posts move fastest and briefly cross the actor.
+    for(int i=0;i<14;i++){
+      final xx=((i*91.0-scroll*560)%(s.width+80))-35; final y=ground+8+(i%3)*11;
+      final p=Path()..moveTo(xx,y+24)..quadraticBezierTo(xx-13,y+6,xx-4,y-6)..quadraticBezierTo(xx+1,y+8,xx+4,y+24)..close();
+      c.drawPath(p,Paint()..color=i.isEven?const Color(0xff6b8b55):const Color(0xff415c3e));
+    }
     c.restore();
   }
-  @override bool shouldRepaint(covariant JunglePainter old)=>old.x!=x||old.jump!=jump||old.scroll!=scroll||old.shooting!=shooting||old.level!=level||old.weapon!=weapon||old.prone!=prone||old.dodging!=dodging||old.frame!=frame||old.aimAxis!=aimAxis||old.shake!=shake;
+  @override bool shouldRepaint(covariant JunglePainter old)=>old.x!=x||old.jump!=jump||old.scroll!=scroll||old.shooting!=shooting||old.level!=level||old.weapon!=weapon||old.prone!=prone||old.dodging!=dodging||old.frame!=frame||old.aimAxis!=aimAxis||old.shake!=shake||old.idleSeconds!=idleSeconds||old.startled!=startled||old.deaths!=deaths||old.enemies!=enemies||old.projectiles!=projectiles;
 }

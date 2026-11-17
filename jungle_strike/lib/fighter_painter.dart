@@ -12,6 +12,8 @@ void paintFighter(
   required bool dodging,
   required bool firing,
   required String weapon,
+  required double idleSeconds,
+  required bool startled,
 }) {
   const ink = Color(0xff101920);
   const skin = Color(0xffd69069);
@@ -25,8 +27,8 @@ void paintFighter(
   const tile = 4.0;
   final px = tile * scale;
   final bob = prone ? 0.0 : math.sin(frame * .28) * 1.5 * scale;
-  final baseY = footY + bob;
-  final rifleColor = weapon == 'ROCKET' ? const Color(0xffba6844) : weapon == 'SPREAD' ? const Color(0xff538b9c) : const Color(0xff52686e);
+  final baseY = footY + bob + (weapon == 'ROCKET' && !prone ? 3*scale : 0);
+  final rifleColor = weapon == 'ROCKET' ? const Color(0xffba6844) : weapon == 'PISTOL' ? const Color(0xff62777d) : weapon == 'SPREAD' ? const Color(0xff538b9c) : const Color(0xff52686e);
 
   void block(double left, double top, double width, double height, Color color) {
     final l = ((x + left * scale) / px).roundToDouble() * px;
@@ -59,34 +61,63 @@ void paintFighter(
   block(-20,-64,8,4,skinLight); block(-12,-56,8,8,skinShade);
   block(16,-68,20,20,ink); block(20,-64,16,16,skinShade); block(20,-64,12,12,skin);
   block(24,-64,8,4,skinLight); block(20,-52,12,4,skinShade);
-  // Tactical gloves and forearms angle inward to grip the gun.
-  block(-8,-56,24,8,skinShade); block(-4,-56,20,4,skinLight); block(20,-56,16,8,skinShade); block(24,-56,12,4,skinLight);
-  block(0,-52,12,8,ink); block(28,-52,12,8,ink);
+  // The pistol is a one-hand ready stance; long guns visibly use a two-hand grip.
+  if (weapon == 'PISTOL') {
+    block(20,-58,20,8,skinShade); block(24,-58,16,4,skinLight); block(32,-54,8,8,ink);
+  } else {
+    block(-8,-56,24,8,skinShade); block(-4,-56,20,4,skinLight); block(20,-56,16,8,skinShade); block(24,-56,12,4,skinLight);
+    block(0,-52,12,8,ink); block(28,-52,12,8,ink);
+  }
 
   // Face, visible eye, brow, nose, hair and bandana.
   block(-4,-92,28,28,ink); block(0,-88,20,24,skinShade); block(4,-88,16,20,skin); block(12,-84,8,4,skinLight);
-  block(16,-80,4,4,ink); block(20,-76,4,4,skinShade); block(12,-76,8,4,ink);
+  if (startled) {
+    block(12,-84,12,8,const Color(0xfff6edd4)); block(16,-84,4,8,ink);
+    block(20,-76,4,4,skinShade); block(8,-88,12,4,ink);
+  } else {
+    block(16,-80,4,4,ink); block(20,-76,4,4,skinShade); block(12,-76,8,4,ink);
+    if (firing) { block(12,-72,8,4,const Color(0xfffff0d8)); }
+  }
   block(-4,-96,28,12,ink); block(0,-92,24,8,armor); block(4,-88,16,4,armorHi);
   block(-8,-88,8,16,ink); block(-4,-76,4,8,armorMid);
+  final scarfWave = math.sin(frame * .48) * 4;
+  block(-20,-88+scarfWave,16,4,const Color(0xffe85e4f));
+  block(-28,-84+math.sin(frame*.48+1)*6,12,4,const Color(0xffff9a5b));
 
-  // Modern rifle, visibly held by both hands, distinct silhouette per weapon.
-  final rifleY = -60.0;
-  block(8,rifleY-4,72,16,ink);
-  block(12,rifleY,64,8,rifleColor);
-  block(16,rifleY-4,28,4,armorHi); block(20,rifleY+8,12,8,ink);
-  block(60,rifleY+4,16,4,armorHi); block(76,rifleY+4,16,4,ink); block(88,rifleY+4,8,4,armorHi);
-  block(36,rifleY-8,8,4,ink); block(40,rifleY-4,4,4,gold);
-  block(8,rifleY+4,12,8,ink); block(12,rifleY+4,8,4,skin);
-  block(48,rifleY+4,12,8,ink); block(52,rifleY+4,8,4,skinLight);
-  if (weapon == 'ROCKET') { block(32,rifleY-8,32,4,gold); block(20,rifleY+12,12,4,ink); }
-  if (weapon == 'SPREAD') { block(80,rifleY,16,4,armorHi); }
+  // Gun pose changes with weight: compact one-hand pistol, braced rifle, heavy launcher.
+  final rifleY = idleSeconds >= 5 ? -52.0 : weapon == 'ROCKET' ? -57.0 : -60.0;
+  if (weapon == 'PISTOL') {
+    block(28,rifleY-4,32,12,ink);
+    block(32,rifleY,24,4,rifleColor);
+    block(52,rifleY,16,4,armorHi);
+    block(36,rifleY+4,8,8,ink);
+    block(24,rifleY-4,8,8,skinLight);
+    block(36,rifleY-8,8,4,ink);
+  } else {
+    final length = weapon == 'ROCKET' ? 88.0 : 72.0;
+    block(8,rifleY-4,length,16,ink);
+    block(12,rifleY,length-12,8,rifleColor);
+    block(16,rifleY-4,28,4,armorHi); block(20,rifleY+8,12,8,ink);
+    block(60,rifleY+4,16,4,armorHi); block(76,rifleY+4,16,4,ink); block(88,rifleY+4,8,4,armorHi);
+    block(36,rifleY-8,8,4,ink); block(40,rifleY-4,4,4,gold);
+    block(8,rifleY+4,12,8,ink); block(12,rifleY+4,8,4,skin);
+    block(48,rifleY+4,12,8,ink); block(52,rifleY+4,8,4,skinLight);
+    if (weapon == 'ROCKET') { block(32,rifleY-8,40,4,gold); block(20,rifleY+12,12,4,ink); block(72,rifleY,20,8,Color.lerp(rifleColor,ink,.4)!); }
+    if (weapon == 'SPREAD') { block(80,rifleY,16,4,armorHi); }
+  }
+  if (idleSeconds >= 5) {
+    final cleanWave = math.sin(frame * .18).abs();
+    block(46,rifleY+12+cleanWave*3,12,8,const Color(0xff72d9d0));
+    block(42,rifleY+8,8,4,skinLight);
+  }
   if (firing) {
+    final muzzleX = weapon == 'PISTOL' ? 68.0 : weapon == 'ROCKET' ? 104.0 : 96.0;
     final flash = Path()
-      ..moveTo((x+96*scale),baseY-58*scale)
-      ..lineTo((x+108*scale),baseY-66*scale)
-      ..lineTo((x+104*scale),baseY-58*scale)
-      ..lineTo((x+112*scale),baseY-54*scale)
-      ..lineTo((x+100*scale),baseY-52*scale)
+      ..moveTo((x+muzzleX*scale),baseY-58*scale)
+      ..lineTo((x+(muzzleX+12)*scale),baseY-66*scale)
+      ..lineTo((x+(muzzleX+8)*scale),baseY-58*scale)
+      ..lineTo((x+(muzzleX+16)*scale),baseY-54*scale)
+      ..lineTo((x+(muzzleX+4)*scale),baseY-52*scale)
       ..close();
     canvas.drawPath(flash,Paint()..color=gold);
   }
