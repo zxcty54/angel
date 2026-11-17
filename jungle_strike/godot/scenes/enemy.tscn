@@ -1,0 +1,37 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy.gd" id="1_enemy"]
+
+[sub_resource type="CapsuleMesh" id="EnemyMesh"]
+radius = 0.42
+height = 1.8
+radial_segments = 12
+rings = 6
+
+[sub_resource type="CapsuleShape3D" id="EnemyShape"]
+radius = 0.42
+height = 1.8
+
+[sub_resource type="BoxMesh" id="EnemyWeapon"]
+size = Vector3(0.16, 0.16, 0.65)
+
+[sub_resource type="StandardMaterial3D" id="EnemyMaterial"]
+albedo_color = Color(0.56, 0.18, 0.13, 1)
+roughness = 0.82
+
+[node name="Enemy" type="CharacterBody3D"]
+groups = ["enemies"]
+script = ExtResource("1_enemy")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.9, 0)
+mesh = SubResource("EnemyMesh")
+surface_material_override/0 = SubResource("EnemyMaterial")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.9, 0)
+shape = SubResource("EnemyShape")
+
+[node name="Weapon" type="MeshInstance3D" parent="."]
+position = Vector3(0.38, 1.18, -0.35)
+mesh = SubResource("EnemyWeapon")

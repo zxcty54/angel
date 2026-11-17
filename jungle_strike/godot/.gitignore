@@ -1,0 +1,4 @@
+.godot/
+build/
+android/build/
+android/.gradle/

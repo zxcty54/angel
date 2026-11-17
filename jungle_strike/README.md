@@ -1,32 +1,21 @@
-# Jungle Strike
+# Jungle Strike 3D
 
-An independent Flutter Android action-game app (not part of Mohalla Charcha). The single-player campaign runs offline and has no Supabase, account, or backend dependency. It includes a story intro, six mission checkpoints, distinct stage artwork, a final Iron Vulture boss encounter, player and enemy projectiles, enemy waves, collisions, twin-stick movement/manual aim with nearest-enemy auto-lock, background drones that dive into the lane, a muscular pixel-art fighter with a rifle, boss fan-volley patterns, explosive barrels, camera shake/hit-stop, and three-choice mission upgrades.
+Jungle Strike is migrating from Flutter to Godot 4 as an offline, single-player third-person Android action campaign. The Godot project is under `godot/`. The older Flutter prototype remains in `lib/` as a temporary fallback only; it is no longer the APK build target.
 
-## Play locally
+## Godot prototype
 
-Install Flutter stable, then run:
+Open `godot/project.godot` using Godot 4.4.1 or newer. The current vertical slice includes:
 
-```sh
-cd jungle_strike
-flutter create --platforms=android --org com.junglestrike .
-flutter pub get
-flutter run
-```
+- 3D third-person player, shoulder camera, mouse/touch look, movement, jump, dodge with brief i-frames and hitscan firing.
+- Touch joystick, look drag, fire, jump and dodge controls on mobile.
+- Procedural low-poly jungle greybox, layered ridgelines, props, warm directional lighting and muzzle light.
+- Six offline campaign missions, locally saved unlocked checkpoint, enemy waves, Iron Vulture boss, retry and three upgrade choices.
+- Enemy hit flash and short-lived physics corpses; boss camera smoothly zooms out.
 
-Controls: drag the on-screen joystick for continuous movement (push up to jump, down to go prone), use the run button to dodge (cooldown), hold FIRE to shoot, GUN to cycle PULSE / SPREAD / ROCKET, and EMOTE for a quick cheer. Four kills clear each of the first five missions; defeat the Iron Vulture in mission six. If armor runs out, tap the stage to retry from your saved checkpoint. Unlocked mission and best score save on-device with SharedPreferences; no cloud sync.
+Desktop controls: WASD move, mouse look, left click or F to fire, Space to jump, Escape releases the mouse. On Android the on-screen controls are enabled automatically.
 
-## Build and send the APK to Telegram
+## Android APK → Telegram
 
-The workflow is `../.github/workflows/jungle-strike-apk-telegram.yml` from this app folder. It builds on pull requests that touch the game/workflow and sends a ZIP containing the APK, SHA-256 checksum, and install note directly to Telegram for same-repository PRs. Fork PRs build without Telegram secrets and do not send. Manual dispatch or a `jungle-v*` tag also builds and sends the ZIP. It generates Android platform files and runs formatting/analyzer/tests before building; no GitHub APK artifact is published.
+`.github/workflows/jungle-strike-apk-telegram.yml` exports the Godot Android preset, packages the APK with a SHA-256 checksum/install note, and sends the ZIP directly to Telegram using the existing `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` Actions secrets. APKs are not uploaded as GitHub artifacts. Fork PRs do not receive secrets and do not send. A repository PR or manual workflow run can build; `jungle-v*` tags are available for versioned delivery.
 
-One-time GitHub repository setup:
-
-1. Telegram delivery reuses the repository-level `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` Actions secrets already used by the existing Mohalla Charcha workflow. The game workflow reads those same secrets; it does not copy, print, or retrieve their values.
-2. Run **Actions → Jungle Strike APK → Telegram → Run workflow**, or push a version tag to run it automatically:
-
-```sh
-git tag jungle-v1.0.0
-git push origin jungle-v1.0.0
-```
-
-The bot token must stay in GitHub Actions secrets—never commit it or paste it into source/chat. The current APK uses the generated Android debug signing configuration for the release build; before a public Play Store release, configure a private production keystore and protect its credentials as repository secrets.
+The build currently uses the Godot Android debug signing configuration, suitable for testing only. A Play Store release needs a private production keystore stored in Actions secrets. The Godot project is an actively developed greybox, not a BGMI-equivalent art package: polished realistic character/weapon/environment assets and device profiling remain future production work.

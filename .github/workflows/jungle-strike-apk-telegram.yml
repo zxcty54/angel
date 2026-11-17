@@ -1,11 +1,13 @@
-name: Jungle Strike APK → Telegram
+name: Jungle Strike Godot APK → Telegram
 
 on:
   workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
-      - 'jungle_strike/**'
+      - 'jungle_strike/godot/**'
+      - 'jungle_strike/scripts/package_apk.py'
+      - 'jungle_strike/scripts/send_telegram.py'
       - '.github/workflows/jungle-strike-apk-telegram.yml'
   push:
     tags: ['jungle-v*']
@@ -14,16 +16,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: jungle-apk-${{ github.ref }}
+  group: jungle-godot-apk-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   build-and-send:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
-    defaults:
-      run:
-        working-directory: jungle_strike
+    timeout-minutes: 45
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -32,47 +31,43 @@ jobs:
 
       - name: Check Telegram secrets are configured
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        run: python3 scripts/send_telegram.py --check-config
+        run: python3 jungle_strike/scripts/send_telegram.py --check-config
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
         with:
-          flutter-version: '3.44.0'
+          packages: 'platform-tools,platforms;android-35,build-tools;35.0.0,ndk;28.1.13356709,cmake;3.10.2.4988404'
+
+      - name: Prepare export directory
+        run: mkdir -p jungle_strike/godot/build
+
+      - name: Validate project and export Android APK
+        id: godot-export
+        uses: firebelley/godot-export@v8.0.0
+        with:
+          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz
+          relative_project_path: jungle_strike/godot
+          use_preset_export_path: true
+          presets_to_export: Android
           cache: true
+          verbose: true
 
-      - name: Generate Android project files
-        run: flutter create --platforms=android --org com.junglestrike .
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Format Dart source
-        run: dart format lib test
-
-      - name: Analyze Flutter app
-        run: flutter analyze
-
-      - name: Run Flutter tests
-        run: flutter test
-
-      - name: Build release APK
-        run: flutter build apk --release --build-number="$GITHUB_RUN_NUMBER"
-
-      - name: Package APK as a ZIP
-        run: python3 scripts/package_apk.py --apk build/app/outputs/flutter-apk/app-release.apk --output delivery/Jungle-Strike-${GITHUB_RUN_NUMBER}.zip --version "$GITHUB_RUN_NUMBER"
+      - name: Package APK as Telegram ZIP
+        run: python3 jungle_strike/scripts/package_apk.py --apk jungle_strike/godot/build/Jungle-Strike.apk --output jungle_strike/godot/build/Jungle-Strike-${GITHUB_RUN_NUMBER}.zip --version "$GITHUB_RUN_NUMBER"
 
       - name: Send APK ZIP to Telegram
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        run: python3 scripts/send_telegram.py --file delivery/Jungle-Strike-${GITHUB_RUN_NUMBER}.zip
+        run: python3 jungle_strike/scripts/send_telegram.py --file jungle_strike/godot/build/Jungle-Strike-${GITHUB_RUN_NUMBER}.zip
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
