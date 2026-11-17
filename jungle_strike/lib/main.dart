@@ -270,22 +270,22 @@ class _GameScreenState extends State<GameScreen> {
             break;
           }
         }
-        if (target != null) {
-          target.hp -= bullet.damage;
-          target.flashFor = .1;
+        final hitTarget = target;
+        if (hitTarget != null) {
+          hitTarget.hp -= bullet.damage;
+          hitTarget.flashFor = .1;
           projectiles.remove(bullet);
-          if (target.boss) bossHp = target.hp;
-          if (target.hp <= 0) {
-            deaths.add(GameDeath(x: target.x, y: target.y, vx: .45 + bullet.vx.abs()*.2, vy: -.55, rotation: -.2));
-            enemies.remove(target);
-            score += target.boss ? 1500 : 100;
-            if (target.explosive) {
+          if (hitTarget.boss) bossHp = hitTarget.hp;
+          if (hitTarget.hp <= 0) {
+            deaths.add(GameDeath(x: hitTarget.x, y: hitTarget.y, vx: .45 + bullet.vx.abs()*.2, vy: -.55, rotation: -.2));
+            enemies.remove(hitTarget);
+            score += hitTarget.boss ? 1500 : 100;
+            if (hitTarget.explosive) {
               cameraShake = .95;
               hitStopFrames = 4;
-              // Snapshot before the predicate closure: `target` is nullable and
-              // Dart does not promote captured nullable locals inside closures.
-              final blastX = target.x;
-              final blastY = target.y;
+              // Snapshot coordinates before the predicate closure.
+              final blastX = hitTarget.x;
+              final blastY = hitTarget.y;
               for (final victim in enemies.where((e) => (e.x-blastX).abs()<.25 && (e.y-blastY).abs()<.2).toList()) {
                 if (victim.boss) {
                   victim.hp -= 3;
@@ -299,9 +299,9 @@ class _GameScreenState extends State<GameScreen> {
                 }
               }
             }
-            cameraShake = target.boss ? 1.0 : target.explosive ? .95 : .42;
-            hitStopFrames = target.boss ? 5 : 2;
-            if (target.boss) {
+            cameraShake = hitTarget.boss ? 1.0 : hitTarget.explosive ? .95 : .42;
+            hitStopFrames = hitTarget.boss ? 5 : 2;
+            if (hitTarget.boss) {
               running = false;
               campaignWon = true;
               save = true;
