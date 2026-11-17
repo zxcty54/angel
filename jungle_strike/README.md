@@ -13,7 +13,7 @@ flutter pub get
 flutter run
 ```
 
-Controls: left/right to move, up to jump, run button to dodge (cooldown), DOWN to toggle prone, hold FIRE to shoot, GUN to cycle PULSE / SPREAD / ROCKET, and EMOTE for a quick cheer. Four kills clear each of the first five missions; defeat the Iron Vulture in mission six. If armor runs out, tap the stage to retry from your saved checkpoint. Unlocked mission and best score save on-device with SharedPreferences; no cloud sync.
+Controls: drag the on-screen joystick for continuous movement (push up to jump, down to go prone), use the run button to dodge (cooldown), hold FIRE to shoot, GUN to cycle PULSE / SPREAD / ROCKET, and EMOTE for a quick cheer. Four kills clear each of the first five missions; defeat the Iron Vulture in mission six. If armor runs out, tap the stage to retry from your saved checkpoint. Unlocked mission and best score save on-device with SharedPreferences; no cloud sync.
 
 ## Build and send the APK to Telegram
 

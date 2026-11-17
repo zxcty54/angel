@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jungle_strike/main.dart';
@@ -11,6 +12,7 @@ void main() {
     await tester.tap(find.text('PLAY STORY CAMPAIGN'));
     await tester.pumpAndSettle();
     expect(find.text('FIRE'), findsOneWidget);
+    expect(find.byIcon(Icons.control_camera), findsOneWidget);
     expect(find.textContaining('ARMOR'), findsOneWidget);
     expect(find.textContaining('Tap to deploy'), findsOneWidget);
   });

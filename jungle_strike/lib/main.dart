@@ -73,7 +73,8 @@ String missionBackground(int level)=>switch(level){2=>'assets/mission_bridge.png
 class GameScreen extends StatefulWidget { const GameScreen({super.key}); @override State<GameScreen> createState()=>_GameScreenState(); }
 class _GameScreenState extends State<GameScreen> {
   Timer? timer;
-  double x = .16, jump = 0, scroll = 0, fireCooldown = 0, spawnCooldown = 0, invulnerable = 0;
+  double x = .16, jump = 0, scroll = 0, fireCooldown = 0, spawnCooldown = 0, invulnerable = 0, moveAxis = 0;
+  bool _stickUpActive = false;
   int score = 0, armor = 3, level = 1, bossHp = 10, killsThisMission = 0, frame = 0, spawnIndex = 0;
   int unlockedMission = 1, bestScore = 0;
   bool running = false, firing = false, campaignWon = false;
@@ -114,6 +115,7 @@ class _GameScreenState extends State<GameScreen> {
       score = 0;
       armor = 3;
       x = .16;
+      moveAxis = 0;
       scroll = 0;
       frame = 0;
       spawnIndex = 0;
@@ -142,6 +144,7 @@ class _GameScreenState extends State<GameScreen> {
     setState(() {
       frame++;
       scroll = (scroll + dt * .22) % 1;
+      x = (x + moveAxis * dt * .72).clamp(.05, .72).toDouble();
       fireCooldown -= dt;
       spawnCooldown -= dt;
       invulnerable = math.max(0, invulnerable - dt).toDouble();
@@ -249,8 +252,6 @@ class _GameScreenState extends State<GameScreen> {
     if (save) { _saveProgress(); }
   }
 
-  void move(double delta) => setState(() => x = (x + delta).clamp(.05, .66).toDouble());
-
   void doJump() {
     if (!running) { return; }
     setState(() { jump = 1; prone = false; });
@@ -334,11 +335,35 @@ class _GameScreenState extends State<GameScreen> {
       Container(
         color: const Color(0xff172432), padding: const EdgeInsets.fromLTRB(12, 9, 12, 14),
         child: Column(children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Row(children: [control(Icons.chevron_left, () => move(-.06)), const SizedBox(width: 5), control(Icons.chevron_right, () => move(.06))]),
-            Row(children: [control(Icons.arrow_upward_rounded, doJump), const SizedBox(width: 5), control(Icons.directions_run, () => doDodge(), tint: const Color(0xff42b9a5)), const SizedBox(width: 5), control(Icons.keyboard_arrow_down, () => setState(() => prone = !prone), tint: const Color(0xff7485ca))]),
-            GestureDetector(onLongPressStart: (_) => setState(() => firing = true), onLongPressEnd: (_) => setState(() => firing = false), onTapDown: (_) => setState(() => firing = true), onTapUp: (_) => setState(() => firing = false), child: Container(padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 15), decoration: BoxDecoration(color: const Color(0xffef554b), borderRadius: BorderRadius.circular(16)), child: const Row(children: [Icon(Icons.bolt, color: Colors.white), SizedBox(width: 4), Text('FIRE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900))]))),
-          ]),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              _VirtualJoystick(onMove: (stick) {
+                moveAxis = stick.dx;
+                final wantsJump = stick.dy < -.68;
+                if (wantsJump && !_stickUpActive) { doJump(); }
+                _stickUpActive = wantsJump;
+                final wantsProne = stick.dy > .72;
+                if (running && prone != wantsProne) { setState(() => prone = wantsProne); }
+              }),
+              const SizedBox(width: 10),
+              Row(children: [
+                control(Icons.arrow_upward_rounded, doJump),
+                const SizedBox(width: 5),
+                control(Icons.directions_run, doDodge, tint: const Color(0xff42b9a5)),
+                const SizedBox(width: 5),
+                control(Icons.keyboard_arrow_down, () => setState(() => prone = !prone), tint: const Color(0xff7485ca)),
+              ]),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onLongPressStart: (_) => setState(() => firing = true),
+                onLongPressEnd: (_) => setState(() => firing = false),
+                onTapDown: (_) => setState(() => firing = true),
+                onTapUp: (_) => setState(() => firing = false),
+                child: Container(padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 15), decoration: BoxDecoration(color: const Color(0xffef554b), borderRadius: BorderRadius.circular(16), boxShadow: const [BoxShadow(color: Color(0x88ef554b), blurRadius: 16)]), child: const Row(children: [Icon(Icons.bolt, color: Colors.white), SizedBox(width: 4), Text('FIRE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900))])),
+              ),
+            ]),
+          ),
           const SizedBox(height: 7),
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             OutlinedButton.icon(onPressed: cycleWeapon, icon: const Icon(Icons.auto_awesome, size: 16), label: Text(weapon), style: OutlinedButton.styleFrom(foregroundColor: const Color(0xffffd166), visualDensity: VisualDensity.compact)),
@@ -356,6 +381,79 @@ class _GameScreenState extends State<GameScreen> {
     onTap: action, borderRadius: BorderRadius.circular(15),
     child: Container(width: 45, height: 48, decoration: BoxDecoration(color: const Color(0xff293b4b), borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white12)), child: Icon(icon, color: tint, size: 27)),
   );
+}
+
+class _VirtualJoystick extends StatefulWidget {
+  const _VirtualJoystick({required this.onMove});
+  final ValueChanged<Offset> onMove;
+  @override
+  State<_VirtualJoystick> createState() => _VirtualJoystickState();
+}
+
+class _VirtualJoystickState extends State<_VirtualJoystick> {
+  Offset _axis = Offset.zero;
+
+  void _update(Offset position, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    var axis = Offset((position.dx - center.dx) / 34, (position.dy - center.dy) / 34);
+    final length = axis.distance;
+    if (length > 1) { axis = axis / length; }
+    setState(() => _axis = axis);
+    widget.onMove(axis);
+  }
+
+  void _release() {
+    setState(() => _axis = Offset.zero);
+    widget.onMove(Offset.zero);
+  }
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: 108,
+    child: LayoutBuilder(builder: (context, box) {
+      final size = Size(box.maxWidth, box.maxHeight);
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanStart: (event) => _update(event.localPosition, size),
+        onPanUpdate: (event) => _update(event.localPosition, size),
+        onPanEnd: (_) => _release(),
+        onPanCancel: _release,
+        child: CustomPaint(
+          painter: const _JoystickTrackPainter(),
+          child: Center(
+            child: Transform.translate(
+              offset: Offset(_axis.dx * 29, _axis.dy * 29),
+              child: Container(
+                width: 43,
+                height: 43,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xffd9fff7), Color(0xff38bcae), Color(0xff176f77)]),
+                  border: Border.all(color: Colors.white70, width: 1.5),
+                  boxShadow: const [BoxShadow(color: Color(0x9940e0d0), blurRadius: 16, spreadRadius: 1)],
+                ),
+                child: const Icon(Icons.control_camera, color: Color(0xff103740), size: 25),
+              ),
+            ),
+          ),
+        ),
+      );
+    }),
+  );
+}
+
+class _JoystickTrackPainter extends CustomPainter {
+  const _JoystickTrackPainter();
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    canvas.drawCircle(center, 51, Paint()..shader = const RadialGradient(colors: [Color(0x6636d1c0), Color(0x22202e44), Color(0x99101a28)]).createShader(Offset.zero & size));
+    canvas.drawCircle(center, 48, Paint()..style = PaintingStyle.stroke..strokeWidth = 1.5..color = Colors.white38);
+    canvas.drawCircle(center, 34, Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = const Color(0x667be7d7));
+    canvas.drawCircle(center, 3, Paint()..color = Colors.white54);
+  }
+  @override
+  bool shouldRepaint(covariant _JoystickTrackPainter oldDelegate) => false;
 }
 
 class JunglePainter extends CustomPainter {
