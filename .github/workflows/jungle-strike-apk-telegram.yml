@@ -92,6 +92,12 @@ jobs:
             grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid' /tmp/godot-import.log | head -n 30 | while IFS= read -r line; do echo "::error title=Godot import::$line"; done
             exit "$import_status"
           fi
+          godot --headless --path jungle_strike/godot --quit-after 5 --verbose 2>&1 | tee /tmp/godot-runtime.log
+          runtime_status=${PIPESTATUS[0]}
+          if [[ $runtime_status -ne 0 ]] || grep -qE 'SCRIPT ERROR|Parse Error|Invalid call|Invalid set index|Attempt to call' /tmp/godot-runtime.log; then
+            grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Invalid call|Invalid set index|Attempt to call' /tmp/godot-runtime.log | head -n 40 | while IFS= read -r line; do echo "::error title=Godot startup smoke test::$line"; done
+            exit 1
+          fi
           godot --headless --path jungle_strike/godot --export-debug Android build/Jungle-Strike.apk --verbose 2>&1 | tee /tmp/godot-export.log
           export_status=${PIPESTATUS[0]}
           if [[ $export_status -ne 0 ]]; then
