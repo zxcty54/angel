@@ -282,7 +282,11 @@ class _GameScreenState extends State<GameScreen> {
             if (target.explosive) {
               cameraShake = .95;
               hitStopFrames = 4;
-              for (final victim in enemies.where((e) => (e.x-target.x).abs()<.25 && (e.y-target.y).abs()<.2).toList()) {
+              // Snapshot before the predicate closure: `target` is nullable and
+              // Dart does not promote captured nullable locals inside closures.
+              final blastX = target.x;
+              final blastY = target.y;
+              for (final victim in enemies.where((e) => (e.x-blastX).abs()<.25 && (e.y-blastY).abs()<.2).toList()) {
                 if (victim.boss) {
                   victim.hp -= 3;
                   bossHp = victim.hp;
