@@ -47,8 +47,21 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0 ndk;28.1.13356709 cmake;3.10.2.4988404'
 
-      - name: Prepare export directory
-        run: mkdir -p jungle_strike/godot/build
+      - name: Prepare Godot Android signing and editor settings
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.config/godot" "$HOME/.local/share/godot/keystores" jungle_strike/godot/build
+          keytool -genkeypair -noprompt -keystore "$HOME/.local/share/godot/keystores/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Godot Debug,O=Jungle Strike,C=US"
+          cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/debug_keystore = "$HOME/.local/share/godot/keystores/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
 
       - name: Validate project and export Android APK
         id: godot-export
