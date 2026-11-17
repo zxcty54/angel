@@ -89,7 +89,7 @@ class _GameScreenState extends State<GameScreen> {
 
   Future<void> _restoreProgress() async {
     final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
+    if (!mounted) { return; }
     setState(() {
       unlockedMission = (prefs.getInt('unlocked_mission') ?? 1).clamp(1, 6).toInt();
       bestScore = prefs.getInt('best_score') ?? 0;
@@ -101,7 +101,7 @@ class _GameScreenState extends State<GameScreen> {
     final latestBest = math.max(bestScore, score).toInt();
     await prefs.setInt('unlocked_mission', unlockedMission);
     await prefs.setInt('best_score', latestBest);
-    if (mounted && latestBest != bestScore) setState(() => bestScore = latestBest);
+    if (mounted && latestBest != bestScore) { setState(() => bestScore = latestBest); }
   }
 
   void start() {
@@ -123,7 +123,7 @@ class _GameScreenState extends State<GameScreen> {
     });
     timer?.cancel();
     timer = Timer.periodic(const Duration(milliseconds: 55), (_) {
-      if (!mounted || !running) return;
+      if (!mounted || !running) { return; }
       var save = false;
       setState(() {
         scroll += .012;
@@ -154,34 +154,34 @@ class _GameScreenState extends State<GameScreen> {
             }
           } else if (jump == 0 && !dodging && !prone) {
             armor--;
-            if (armor <= 0) running = false;
+            if (armor <= 0) { running = false; }
           }
         }
         if (scroll > 1) {
           scroll = 0;
           hitThisWave = false;
         }
-        if (!running || campaignWon || (score > bestScore && score % 100 == 0)) save = true;
+        if (!running || campaignWon || (score > bestScore && score % 100 == 0)) { save = true; }
       });
-      if (save) _saveProgress();
+      if (save) { _saveProgress(); }
     });
   }
 
   void move(double delta) => setState(() => x = (x + delta).clamp(.05, .66).toDouble());
 
   void doJump() {
-    if (!running) return;
+    if (!running) { return; }
     setState(() { jump = 1; prone = false; });
     Future.delayed(const Duration(milliseconds: 650), () {
-      if (mounted) setState(() => jump = 0);
+      if (mounted) { setState(() => jump = 0); }
     });
   }
 
   void doDodge() {
-    if (!running || !dodgeReady) return;
+    if (!running || !dodgeReady) { return; }
     setState(() { dodging = true; dodgeReady = false; prone = false; x = (x + .10).clamp(.05, .66).toDouble(); });
-    Future.delayed(const Duration(milliseconds: 430), () { if (mounted) setState(() => dodging = false); });
-    Future.delayed(const Duration(milliseconds: 1200), () { if (mounted) setState(() => dodgeReady = true); });
+    Future.delayed(const Duration(milliseconds: 430), () { if (mounted) { setState(() => dodging = false); } });
+    Future.delayed(const Duration(milliseconds: 1200), () { if (mounted) { setState(() => dodgeReady = true); } });
   }
 
   void cycleWeapon() => setState(() {
@@ -190,7 +190,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void nextEmote() => setState(() {
     emote = _emotes[(_emotes.indexOf(emote) + 1) % _emotes.length];
-    Future.delayed(const Duration(milliseconds: 1300), () { if (mounted) setState(() => emote = ''); });
+    Future.delayed(const Duration(milliseconds: 1300), () { if (mounted) { setState(() => emote = ''); } });
   });
 
   @override
@@ -310,7 +310,7 @@ class JunglePainter extends CustomPainter {
 
     final dx=s.width*(.88-scroll*1.15);
     if(dx>px+28){final center=Offset(dx,ground-(level==6?86:72));final size=level==6?62.0:32.0;c.drawCircle(center,size*.72,Paint()..color=const Color(0x66ff634e)..maskFilter=MaskFilter.blur(BlurStyle.normal,level==6?25:14));c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:center,width:size,height:level==6?38:19),Radius.circular(level==6?14:8)),Paint()..shader=const LinearGradient(colors:[Color(0xfff4774e),Color(0xff8b2d46)]).createShader(Rect.fromCenter(center:center,width:size,height:40)));c.drawCircle(Offset(dx+size*.18,center.dy-2),level==6?5:3,Paint()..color=const Color(0xffffe9a4));c.drawRect(Rect.fromLTWH(dx-size*.28,center.dy+10,level==6?9:5,level==6?22:11),Paint()..color=const Color(0xff323a40));if(level==6){c.drawLine(Offset(dx-size*.65,center.dy-10),Offset(dx+size*.65,center.dy-10),Paint()..color=const Color(0xffffc857)..strokeWidth=4);}}
-    if(shooting){final beamColor=weapon=='ROCKET'?const Color(0xffff7043):weapon=='SPREAD'?const Color(0xff77eaff):const Color(0xffffe680);final beam=Paint()..color=beamColor..strokeWidth=(weapon=='ROCKET'?6.0:weapon=='SPREAD'?4.0:3.0)..maskFilter=const MaskFilter.blur(BlurStyle.normal,2);final startY=prone?ground-20:py-17;c.drawLine(Offset(px+25,startY),Offset(math.max(px+48,dx-15).toDouble(),ground-72),beam);if(weapon=='ROCKET')c.drawCircle(Offset(px+42,startY),7,Paint()..color=const Color(0xffffa35b)..maskFilter=const MaskFilter.blur(BlurStyle.normal,7));if(weapon=='SPREAD'){c.drawLine(Offset(px+25,startY),Offset(dx-15,ground-80),Paint()..color=beamColor..strokeWidth=2);c.drawLine(Offset(px+25,startY),Offset(dx-15,ground-64),Paint()..color=beamColor..strokeWidth=2);}}
+    if(shooting){final beamColor=weapon=='ROCKET'?const Color(0xffff7043):weapon=='SPREAD'?const Color(0xff77eaff):const Color(0xffffe680);final beam=Paint()..color=beamColor..strokeWidth=(weapon=='ROCKET'?6.0:weapon=='SPREAD'?4.0:3.0)..maskFilter=const MaskFilter.blur(BlurStyle.normal,2);final startY=prone?ground-20:py-17;c.drawLine(Offset(px+25,startY),Offset(math.max(px+48,dx-15).toDouble(),ground-72),beam);if(weapon=='ROCKET'){c.drawCircle(Offset(px+42,startY),7,Paint()..color=const Color(0xffffa35b)..maskFilter=const MaskFilter.blur(BlurStyle.normal,7));}if(weapon=='SPREAD'){c.drawLine(Offset(px+25,startY),Offset(dx-15,ground-80),Paint()..color=beamColor..strokeWidth=2);c.drawLine(Offset(px+25,startY),Offset(dx-15,ground-64),Paint()..color=beamColor..strokeWidth=2);}}
     for(int i=0;i<16;i++){final xx=(i*53.0-scroll*130)%(s.width+20);final yy=s.height*(.2+(i%5)*.1);c.drawCircle(Offset(xx,yy),1.2+(i%2),Paint()..color=const Color(0x88c5ffd4));}
   }
   @override bool shouldRepaint(covariant JunglePainter old)=>old.x!=x||old.jump!=jump||old.scroll!=scroll||old.shooting!=shooting||old.level!=level||old.weapon!=weapon||old.prone!=prone||old.dodging!=dodging;
