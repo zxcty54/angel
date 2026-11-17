@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
 
@@ -58,45 +58,6 @@ roughness = 0.8
 albedo_color = Color(0.74, 0.16, 0.10, 1)
 roughness = 0.86
 
-[sub_resource type="BoxMesh" id="ChestPlateMesh"]
-size = Vector3(0.56, 0.50, 0.12)
-
-[sub_resource type="BoxMesh" id="ShoulderMesh"]
-size = Vector3(0.34, 0.22, 0.40)
-
-[sub_resource type="BoxMesh" id="VisorMesh"]
-size = Vector3(0.28, 0.08, 0.045)
-
-[sub_resource type="BoxMesh" id="KneePadMesh"]
-size = Vector3(0.25, 0.16, 0.13)
-
-[sub_resource type="BoxMesh" id="WeaponPartMesh"]
-size = Vector3(0.10, 0.09, 0.30)
-
-[sub_resource type="BoxMesh" id="BootMesh"]
-size = Vector3(0.34, 0.20, 0.44)
-
-[sub_resource type="BoxMesh" id="BeltMesh"]
-size = Vector3(0.58, 0.13, 0.38)
-
-[sub_resource type="StandardMaterial3D" id="SteelMaterial"]
-albedo_color = Color(0.075, 0.11, 0.14, 1)
-metallic = 0.72
-roughness = 0.36
-
-[sub_resource type="StandardMaterial3D" id="VisorMaterial"]
-albedo_color = Color(0.02, 0.34, 0.44, 1)
-metallic = 0.48
-roughness = 0.25
-emission_enabled = true
-emission = Color(0.01, 0.24, 0.36, 1)
-emission_energy_multiplier = 0.8
-
-[sub_resource type="StandardMaterial3D" id="TrimMaterial"]
-albedo_color = Color(0.88, 0.36, 0.12, 1)
-metallic = 0.18
-roughness = 0.58
-
 [node name="Player" type="CharacterBody3D"]
 script = ExtResource("1_player")
 
@@ -114,16 +75,6 @@ position = Vector3(0, 1.10, -0.015)
 mesh = SubResource("VestMesh")
 surface_material_override/0 = SubResource("ArmorMaterial")
 
-[node name="ChestPlate" type="MeshInstance3D" parent="."]
-position = Vector3(0, 1.12, -0.22)
-mesh = SubResource("ChestPlateMesh")
-surface_material_override/0 = SubResource("SteelMaterial")
-
-[node name="Belt" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0.72, -0.015)
-mesh = SubResource("BeltMesh")
-surface_material_override/0 = SubResource("SteelMaterial")
-
 [node name="Head" type="MeshInstance3D" parent="."]
 position = Vector3(0, 1.66, 0)
 mesh = SubResource("HeadMesh")
@@ -134,11 +85,6 @@ position = Vector3(0, 1.83, 0.015)
 mesh = SubResource("HelmetMesh")
 surface_material_override/0 = SubResource("ArmorMaterial")
 
-[node name="TacticalVisor" type="MeshInstance3D" parent="."]
-position = Vector3(0, 1.75, -0.19)
-mesh = SubResource("VisorMesh")
-surface_material_override/0 = SubResource("VisorMaterial")
-
 [node name="LeftLeg" type="MeshInstance3D" parent="."]
 position = Vector3(-0.17, 0.39, 0)
 mesh = SubResource("LimbMesh")
@@ -148,26 +94,6 @@ surface_material_override/0 = SubResource("ClothMaterial")
 position = Vector3(0.17, 0.39, 0)
 mesh = SubResource("LimbMesh")
 surface_material_override/0 = SubResource("ClothMaterial")
-
-[node name="LeftKneePad" type="MeshInstance3D" parent="."]
-position = Vector3(-0.17, 0.26, -0.125)
-mesh = SubResource("KneePadMesh")
-surface_material_override/0 = SubResource("SteelMaterial")
-
-[node name="RightKneePad" type="MeshInstance3D" parent="."]
-position = Vector3(0.17, 0.26, -0.125)
-mesh = SubResource("KneePadMesh")
-surface_material_override/0 = SubResource("SteelMaterial")
-
-[node name="LeftBoot" type="MeshInstance3D" parent="."]
-position = Vector3(-0.17, 0.10, -0.02)
-mesh = SubResource("BootMesh")
-surface_material_override/0 = SubResource("SteelMaterial")
-
-[node name="RightBoot" type="MeshInstance3D" parent="."]
-position = Vector3(0.17, 0.10, -0.02)
-mesh = SubResource("BootMesh")
-surface_material_override/0 = SubResource("SteelMaterial")
 
 [node name="LeftArm" type="MeshInstance3D" parent="."]
 position = Vector3(-0.39, 1.15, -0.12)
@@ -180,16 +106,6 @@ position = Vector3(0.39, 1.15, -0.18)
 rotation = Vector3(0, 0, 0.45)
 mesh = SubResource("LimbMesh")
 surface_material_override/0 = SubResource("SkinMaterial")
-
-[node name="LeftShoulderArmor" type="MeshInstance3D" parent="."]
-position = Vector3(-0.41, 1.47, -0.025)
-mesh = SubResource("ShoulderMesh")
-surface_material_override/0 = SubResource("SteelMaterial")
-
-[node name="RightShoulderArmor" type="MeshInstance3D" parent="."]
-position = Vector3(0.41, 1.47, -0.025)
-mesh = SubResource("ShoulderMesh")
-surface_material_override/0 = SubResource("SteelMaterial")
 
 [node name="Backpack" type="MeshInstance3D" parent="."]
 position = Vector3(0, 1.18, 0.29)
@@ -205,21 +121,6 @@ surface_material_override/0 = SubResource("BandanaMaterial")
 position = Vector3(0.37, 1.20, -0.45)
 mesh = SubResource("GunMesh")
 surface_material_override/0 = SubResource("ArmorMaterial")
-
-[node name="WeaponOptic" type="MeshInstance3D" parent="."]
-position = Vector3(0.37, 1.30, -0.43)
-mesh = SubResource("WeaponPartMesh")
-surface_material_override/0 = SubResource("VisorMaterial")
-
-[node name="WeaponMagazine" type="MeshInstance3D" parent="."]
-position = Vector3(0.37, 1.02, -0.43)
-mesh = SubResource("WeaponPartMesh")
-surface_material_override/0 = SubResource("TrimMaterial")
-
-[node name="BandanaPatch" type="MeshInstance3D" parent="."]
-position = Vector3(0, 1.10, -0.286)
-mesh = SubResource("WeaponPartMesh")
-surface_material_override/0 = SubResource("TrimMaterial")
 
 [node name="CameraPivot" type="Node3D" parent="."]
 position = Vector3(0, 1.55, 0)

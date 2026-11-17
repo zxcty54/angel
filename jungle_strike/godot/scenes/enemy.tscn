@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemy.gd" id="1_enemy"]
 
@@ -19,37 +19,6 @@ size = Vector3(0.16, 0.16, 0.65)
 albedo_color = Color(0.56, 0.18, 0.13, 1)
 roughness = 0.82
 
-[sub_resource type="BoxMesh" id="EnemyVestMesh"]
-size = Vector3(0.62, 0.66, 0.36)
-
-[sub_resource type="BoxMesh" id="EnemyShoulderMesh"]
-size = Vector3(0.30, 0.22, 0.38)
-
-[sub_resource type="SphereMesh" id="EnemyHelmetMesh"]
-radius = 0.27
-height = 0.28
-radial_segments = 12
-rings = 6
-
-[sub_resource type="BoxMesh" id="EnemyVisorMesh"]
-size = Vector3(0.31, 0.07, 0.035)
-
-[sub_resource type="BoxMesh" id="EnemyPouchMesh"]
-size = Vector3(0.15, 0.20, 0.11)
-
-[sub_resource type="StandardMaterial3D" id="EnemyArmorMaterial"]
-albedo_color = Color(0.10, 0.13, 0.15, 1)
-metallic = 0.58
-roughness = 0.46
-
-[sub_resource type="StandardMaterial3D" id="EnemyVisorMaterial"]
-albedo_color = Color(0.68, 0.10, 0.08, 1)
-metallic = 0.25
-roughness = 0.3
-emission_enabled = true
-emission = Color(0.56, 0.035, 0.015, 1)
-emission_energy_multiplier = 1.2
-
 [node name="Enemy" type="CharacterBody3D"]
 groups = ["enemies"]
 script = ExtResource("1_enemy")
@@ -58,41 +27,6 @@ script = ExtResource("1_enemy")
 position = Vector3(0, 0.9, 0)
 mesh = SubResource("EnemyMesh")
 surface_material_override/0 = SubResource("EnemyMaterial")
-
-[node name="ArmoredVest" type="MeshInstance3D" parent="."]
-position = Vector3(0, 1.02, -0.06)
-mesh = SubResource("EnemyVestMesh")
-surface_material_override/0 = SubResource("EnemyArmorMaterial")
-
-[node name="Helmet" type="MeshInstance3D" parent="."]
-position = Vector3(0, 1.78, 0)
-mesh = SubResource("EnemyHelmetMesh")
-surface_material_override/0 = SubResource("EnemyArmorMaterial")
-
-[node name="ThreatVisor" type="MeshInstance3D" parent="."]
-position = Vector3(0, 1.76, -0.248)
-mesh = SubResource("EnemyVisorMesh")
-surface_material_override/0 = SubResource("EnemyVisorMaterial")
-
-[node name="LeftShoulderPlate" type="MeshInstance3D" parent="."]
-position = Vector3(-0.39, 1.43, -0.025)
-mesh = SubResource("EnemyShoulderMesh")
-surface_material_override/0 = SubResource("EnemyArmorMaterial")
-
-[node name="RightShoulderPlate" type="MeshInstance3D" parent="."]
-position = Vector3(0.39, 1.43, -0.025)
-mesh = SubResource("EnemyShoulderMesh")
-surface_material_override/0 = SubResource("EnemyArmorMaterial")
-
-[node name="LeftAmmunitionPouch" type="MeshInstance3D" parent="."]
-position = Vector3(-0.28, 0.93, -0.24)
-mesh = SubResource("EnemyPouchMesh")
-surface_material_override/0 = SubResource("EnemyArmorMaterial")
-
-[node name="RightAmmunitionPouch" type="MeshInstance3D" parent="."]
-position = Vector3(0.28, 0.93, -0.24)
-mesh = SubResource("EnemyPouchMesh")
-surface_material_override/0 = SubResource("EnemyArmorMaterial")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 position = Vector3(0, 0.9, 0)

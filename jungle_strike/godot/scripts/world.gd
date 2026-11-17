@@ -18,7 +18,6 @@ var radio_label: Label
 var hud_label: Label
 var floor_kills := 0
 var radio_generation := 0
-var floor_sign: Label3D
 var health_label: Label
 var overlay: PanelContainer
 var active := false
@@ -149,7 +148,6 @@ func _start_campaign() -> void:
 
 func _begin_floor() -> void:
 	active = true
-	_apply_floor_look()
 	floor_kills = 0
 	boss_active = false
 	player.restore_checkpoint()
@@ -407,15 +405,6 @@ func _build_tower_interior() -> void:
 	var cyan_light := _facility_material(Color(0.06, 0.66, 0.82), 0.32, Color(0.03, 0.42, 0.78))
 	var warning_light := _facility_material(Color(0.8, 0.18, 0.08), 0.38, Color(0.7, 0.035, 0.01))
 	_add_facility_box("FloorSlab", Vector3(0, -0.38, 0), Vector3(54, 0.76, 54), concrete, true)
-	var deck_materials: Array[Material] = [
-		_facility_material(Color(0.17, 0.21, 0.24), 0.68),
-		_facility_material(Color(0.145, 0.18, 0.21), 0.74),
-		_facility_material(Color(0.20, 0.23, 0.25), 0.70)
-	]
-	for ix in range(9):
-		for iz in range(9):
-			var deck_pos := Vector3(-24.0 + ix * 6.0, 0.015, -24.0 + iz * 6.0)
-			_add_facility_box("DeckPlate", deck_pos, Vector3(5.92, 0.035, 5.92), deck_materials[(ix * 3 + iz) % deck_materials.size()], false)
 	_add_facility_box("CeilingRim", Vector3(0, 7.2, -1), Vector3(54, 0.45, 52), dark_metal, false)
 	_add_facility_box("NorthWall", Vector3(0, 3.4, -26), Vector3(54, 7.2, 0.8), dark_metal, true)
 	_add_facility_box("SouthWall", Vector3(0, 3.4, 26), Vector3(54, 7.2, 0.8), dark_metal, true)
@@ -436,43 +425,6 @@ func _build_tower_interior() -> void:
 		_add_facility_box("ConsoleDisplay", pos + Vector3(0, 0.32, -0.53), Vector3(1.7, 0.38, 0.055), cyan_light, false)
 	_add_facility_box("LiftDoor", Vector3(0, 2.2, -25.35), Vector3(6.0, 4.4, 0.12), panel_metal, false)
 	_add_facility_box("LiftSignal", Vector3(0, 4.6, -25.15), Vector3(1.4, 0.12, 0.08), warning_light, false)
-	floor_sign = Label3D.new()
-	floor_sign.name = "FloorNumberSign"
-	floor_sign.position = Vector3(0, 5.25, -25.05)
-	floor_sign.text = "FLOOR %02d  /  %s" % [mission, _floor_name(mission)]
-	floor_sign.font_size = 64
-	floor_sign.pixel_size = 0.012
-	floor_sign.outline_size = 8
-	floor_sign.modulate = Color(0.45, 0.88, 1.0)
-	add_child(floor_sign)
-	for light_position in [Vector3(-12, 5.8, -12), Vector3(12, 5.8, -12), Vector3(-12, 5.8, 12), Vector3(12, 5.8, 12)]:
-		var fill := OmniLight3D.new()
-		fill.position = light_position
-		fill.light_color = Color(0.42, 0.68, 0.82)
-		fill.light_energy = 1.4
-		fill.omni_range = 14.0
-		fill.shadow_enabled = false
-		add_child(fill)
-
-func _apply_floor_look() -> void:
-	var palette: Array[Color] = [Color(0.12, 0.75, 0.98), Color(1.0, 0.48, 0.12), Color(0.26, 0.95, 0.65), Color(0.85, 0.18, 0.34), Color(0.74, 0.54, 1.0), Color(1.0, 0.82, 0.30), Color(0.15, 0.82, 0.72), Color(0.45, 0.68, 1.0), Color(0.98, 0.34, 0.20), Color(0.92, 0.88, 0.72)]
-	var accent := palette[mini(int((mission - 1) / FLOOR_COUNT_PER_CHAPTER), palette.size() - 1)]
-	if is_instance_valid(floor_sign):
-		floor_sign.text = "FLOOR %02d  /  %s" % [mission, _floor_name(mission)]
-		floor_sign.modulate = accent.lightened(0.12)
-	for node in get_tree().get_nodes_in_group("tower_accent"):
-		if not is_instance_valid(node) or node.get_child_count() == 0:
-			continue
-		var mesh := node.get_child(0) as MeshInstance3D
-		if mesh == null:
-			continue
-		var material := StandardMaterial3D.new()
-		material.albedo_color = accent
-		material.emission_enabled = true
-		material.emission = accent
-		material.emission_energy_multiplier = 1.8
-		material.roughness = 0.38
-		mesh.material_override = material
 
 func _facility_material(color: Color, roughness: float, emission: Color = Color.BLACK) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
@@ -488,8 +440,6 @@ func _add_facility_box(node_name: String, at: Vector3, dimensions: Vector3, mate
 	var root: Node3D = StaticBody3D.new() if collidable else Node3D.new()
 	root.name = node_name
 	root.position = at
-	if node_name in ["CeilingLight", "ConsoleDisplay", "AccessStrip", "LiftSignal"]:
-		root.add_to_group("tower_accent")
 	var mesh_instance := MeshInstance3D.new()
 	var box_mesh := BoxMesh.new()
 	box_mesh.size = dimensions
