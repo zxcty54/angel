@@ -182,7 +182,8 @@ class _GameScreenState extends State<GameScreen> {
           final distance = dx * dx + dy * dy;
           if (distance < nearestDistance) { nearest = enemy; nearestDistance = distance; }
         }
-        shotDirection = nearest == null ? const Offset(1, 0) : Offset(nearest.x - x, nearest.y - playerY);
+        final lockedTarget = nearest;
+        shotDirection = lockedTarget == null ? const Offset(1, 0) : Offset(lockedTarget.x - x, lockedTarget.y - playerY);
       }
       final aimLength = math.max(.001, shotDirection.distance);
       shotDirection = shotDirection / aimLength;
