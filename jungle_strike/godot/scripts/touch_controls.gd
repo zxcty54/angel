@@ -44,11 +44,11 @@ func _input(event: InputEvent) -> void:
 				fire_changed.emit(false)
 			if event.index == _look_finger:
 				_look_finger = -1
-		elif event is InputEventScreenDrag:
-			if event.index == _stick_finger:
-				_update_stick(event.position)
-			elif event.index == _look_finger:
-				look_changed.emit(event.relative)
+	elif event is InputEventScreenDrag:
+		if event.index == _stick_finger:
+			_update_stick(event.position)
+		elif event.index == _look_finger:
+			look_changed.emit(event.relative)
 
 func _handle_button_down(pos: Vector2, size: Vector2, finger: int) -> bool:
 	var fire_center := Vector2(size.x * 0.84, size.y * 0.81)
